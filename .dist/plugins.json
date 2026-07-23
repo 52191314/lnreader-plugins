@@ -284,7 +284,7 @@
 		"name": "LightNovelWorld",
 		"site": "https://lightnovelworld.org",
 		"lang": "English",
-		"version": "1.0.3",
+		"version": "1.0.4",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/feat/add-lightnovelworld/.js/src/plugins/english/lightnovelworld.js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/feat/add-lightnovelworld/public/static/src/en/lightnovelworld/icon.png"
 	},

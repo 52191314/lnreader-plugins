@@ -8,7 +8,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     name = "LightNovelWorld";
     icon = "src/en/lightnovelworld/icon.png";
     site = "https://lightnovelworld.org";
-    version = "1.0.3";
+    version = "1.0.4";
 
     async popularNovels(
         pageNo: number,
