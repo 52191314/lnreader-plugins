@@ -9,7 +9,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '1.0.0';
+  version = '1.0.1';
 
   async popularNovels(
     pageNo: number,
@@ -171,38 +171,52 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       cleanSlug = cleanSlug.replace(/^novel\//, '');
     }
 
-    const url = `${this.site}novel/${cleanSlug}/chapters`;
-    const html = await fetchText(url);
-    const $ = loadCheerio(html);
+    const baseUrl = `${this.site}novel/${cleanSlug}/chapters`;
+    const firstHtml = await fetchText(`${baseUrl}?page=1`);
+    const $first = loadCheerio(firstHtml);
 
-    const chapters: Plugin.ChapterItem[] = [];
+    let maxPage = 1;
+    $first('.pagination a, ul.pagination li a, a[href*="page="]').each(
+      (_, el) => {
+        const href = $first(el).attr('href') || '';
+        const m = href.match(/page=(\d+)/i);
+        if (m) {
+          const p = parseInt(m[1], 10);
+          if (p > maxPage) maxPage = p;
+        }
+      },
+    );
 
-    $('a[href*="/chapter-"]').each((i, el) => {
-      const $el = $(el);
-      const href = $el.attr('href') || '';
-      if (!href) return;
+    const firstChapters = this.parseChapterLinks($first);
 
-      let cleanHref = href.replace(/^\//, '');
-      const numMatch = cleanHref.match(/chapter-(\d+)/i);
-      const chapterNumber = numMatch ? parseInt(numMatch[1], 10) : i + 1;
+    if (maxPage <= 1) {
+      firstChapters.sort(
+        (a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0),
+      );
+      return firstChapters;
+    }
 
-      let name =
-        $el.find('.chapter-title, .title').text().trim() ||
-        $el.text().trim();
+    const pagesToFetch: number[] = [];
+    for (let p = 2; p <= maxPage; p++) {
+      pagesToFetch.push(p);
+    }
 
-      name = name.replace(/^\d+/, '').trim();
-      if (!name) name = `Chapter ${chapterNumber}`;
+    const remainingPages = await Promise.all(
+      pagesToFetch.map(async page => {
+        try {
+          const html = await fetchText(`${baseUrl}?page=${page}`);
+          const $ = loadCheerio(html);
+          return this.parseChapterLinks($);
+        } catch {
+          return [];
+        }
+      }),
+    );
 
-      chapters.push({
-        name,
-        path: cleanHref,
-        chapterNumber,
-      });
-    });
+    const allChapters = [...firstChapters, ...remainingPages.flat()];
+    allChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
 
-    chapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
-
-    return chapters;
+    return allChapters;
   }
 
   async parseChapter(chapterPath: string): Promise<string> {
@@ -226,6 +240,35 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
 
     const chapterText = contentContainer.html() || '';
     return chapterText;
+  }
+
+  private parseChapterLinks($: returnType<typeof loadCheerio>): Plugin.ChapterItem[] {
+    const chapters: Plugin.ChapterItem[] = [];
+
+    $('a[href*="/chapter-"]').each((i, el) => {
+      const $el = $(el);
+      const href = $el.attr('href') || '';
+      if (!href) return;
+
+      const cleanHref = href.replace(/^\//, '');
+      const numMatch = cleanHref.match(/chapter-(\d+)/i);
+      const chapterNumber = numMatch ? parseInt(numMatch[1], 10) : i + 1;
+
+      let name =
+        $el.find('.chapter-title, .title').text().trim() ||
+        $el.text().trim();
+
+      name = name.replace(/^\d+/, '').trim();
+      if (!name) name = `Chapter ${chapterNumber}`;
+
+      chapters.push({
+        name,
+        path: cleanHref,
+        chapterNumber,
+      });
+    });
+
+    return chapters;
   }
 
   private parseNovelList(html: string): Plugin.NovelItem[] {
