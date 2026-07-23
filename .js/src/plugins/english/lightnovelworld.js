@@ -56,7 +56,7 @@ var LightNovelWorldPlugin = /** @class */ (function () {
         this.name = 'LightNovelWorld';
         this.icon = 'src/en/lightnovelworld/icon.png';
         this.site = 'https://lightnovelworld.org/';
-        this.version = '1.1.7';
+        this.version = '1.1.8';
         this.filters = {
             order: {
                 value: 'popular',
@@ -65,6 +65,16 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                     { label: 'Popular', value: 'popular' },
                     { label: 'New', value: 'new' },
                     { label: 'Updates', value: 'updates' },
+                ],
+                type: filterInputs_1.FilterTypes.Picker,
+            },
+            status: {
+                value: 'all',
+                label: 'Status',
+                options: [
+                    { label: 'All', value: 'all' },
+                    { label: 'Ongoing', value: 'ongoing' },
+                    { label: 'Completed', value: 'completed' },
                 ],
                 type: filterInputs_1.FilterTypes.Picker,
             },
@@ -136,21 +146,22 @@ var LightNovelWorldPlugin = /** @class */ (function () {
     }
     LightNovelWorldPlugin.prototype.popularNovels = function (pageNo_1, _a) {
         return __awaiter(this, arguments, void 0, function (pageNo, _b) {
-            var page, genre, order, url, html;
-            var _c, _d;
+            var page, genre, status, order, url, html;
+            var _c, _d, _e;
             var showLatestNovels = _b.showLatestNovels, filters = _b.filters;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
+            return __generator(this, function (_f) {
+                switch (_f.label) {
                     case 0:
                         page = Math.max(1, pageNo || 1);
                         genre = ((_c = filters === null || filters === void 0 ? void 0 : filters.genre) === null || _c === void 0 ? void 0 : _c.value) || 'all';
+                        status = ((_d = filters === null || filters === void 0 ? void 0 : filters.status) === null || _d === void 0 ? void 0 : _d.value) || 'all';
                         order = showLatestNovels
                             ? 'updates'
-                            : ((_d = filters === null || filters === void 0 ? void 0 : filters.order) === null || _d === void 0 ? void 0 : _d.value) || 'popular';
-                        url = "".concat(this.site, "genre-").concat(genre, "/?order=").concat(order, "&page=").concat(page);
+                            : ((_e = filters === null || filters === void 0 ? void 0 : filters.order) === null || _e === void 0 ? void 0 : _e.value) || 'popular';
+                        url = "".concat(this.site, "genre-").concat(genre, "/?status=").concat(status, "&order=").concat(order, "&page=").concat(page);
                         return [4 /*yield*/, (0, fetch_1.fetchText)(url)];
                     case 1:
-                        html = _e.sent();
+                        html = _f.sent();
                         return [2 /*return*/, this.parseNovelList(html)];
                 }
             });
