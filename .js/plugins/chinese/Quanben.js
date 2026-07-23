@@ -1,1 +1,356 @@
-var t=this&&this.__awaiter||function(t,e,n,r){return new(n||(n=Promise))((function(a,i){function o(t){try{c(r.next(t))}catch(t){i(t)}}function l(t){try{c(r.throw(t))}catch(t){i(t)}}function c(t){var e;t.done?a(t.value):(e=t.value,e instanceof n?e:new n((function(t){t(e)}))).then(o,l)}c((r=r.apply(t,e||[])).next())}))},e=this&&this.__generator||function(t,e){var n,r,a,i={label:0,sent:function(){if(1&a[0])throw a[1];return a[1]},trys:[],ops:[]},o=Object.create(("function"==typeof Iterator?Iterator:Object).prototype);return o.next=l(0),o.throw=l(1),o.return=l(2),"function"==typeof Symbol&&(o[Symbol.iterator]=function(){return this}),o;function l(l){return function(c){return function(l){if(n)throw new TypeError("Generator is already executing.");for(;o&&(o=0,l[0]&&(i=0)),i;)try{if(n=1,r&&(a=2&l[0]?r.return:l[0]?r.throw||((a=r.return)&&a.call(r),0):r.next)&&!(a=a.call(r,l[1])).done)return a;switch(r=0,a&&(l=[2&l[0],a.value]),l[0]){case 0:case 1:a=l;break;case 4:return i.label++,{value:l[1],done:!1};case 5:i.label++,r=l[1],l=[0];continue;case 7:l=i.ops.pop(),i.trys.pop();continue;default:if(!(a=i.trys,(a=a.length>0&&a[a.length-1])||6!==l[0]&&2!==l[0])){i=0;continue}if(3===l[0]&&(!a||l[1]>a[0]&&l[1]<a[3])){i.label=l[1];break}if(6===l[0]&&i.label<a[1]){i.label=a[1],a=l;break}if(a&&i.label<a[2]){i.label=a[2],i.ops.push(l);break}a[2]&&i.ops.pop(),i.trys.pop();continue}l=e.call(t,i)}catch(t){l=[6,t],r=0}finally{n=a=0}if(5&l[0])throw l[1];return{value:l[0]?l[1]:void 0,done:!0}}([l,c])}}};Object.defineProperty(exports,"__esModule",{value:!0});var n=require("@libs/filterInputs"),r=require("@libs/fetch"),a=require("@libs/novelStatus"),i=require("cheerio"),o=require("@libs/defaultCover"),l=function(t){var e,n=function(t){if(t)try{return new URL(t,"https://www.quanben.io")}catch(t){return}}(t);if(n){var r=n.pathname.match(/^(\/amp)?(\/n\/[^/]+\/)/);return null===(e=null==r?void 0:r[2])||void 0===e?void 0:e.replace(/^\//,"")}},c=function(t,e){if(t&&e)try{return t.startsWith("//")?"https:"+t:/^https?:\/\//.test(t)?t:new URL(t,e).href}catch(t){return}},s=function(){function s(){this.id="quanben",this.name="Quanben",this.site="https://www.quanben.io/",this.version="1.1.1",this.icon="src/cn/quanben/icon.png",this.defaultCover=o.defaultCover,this.filters={genre:{label:"分类",value:"all",options:[{label:"全部",value:"all"},{label:"玄幻",value:"xuanhuan"},{label:"都市",value:"dushi"},{label:"言情",value:"yanqing"},{label:"穿越",value:"chuanyue"},{label:"青春",value:"qingchun"},{label:"仙侠",value:"xianxia"},{label:"灵异",value:"lingyi"},{label:"悬疑",value:"xuanyi"},{label:"历史",value:"lishi"},{label:"军事",value:"junshi"},{label:"游戏",value:"youxi"},{label:"竞技",value:"jingji"},{label:"科幻",value:"kehuan"},{label:"职场",value:"zhichang"},{label:"官场",value:"guanchang"},{label:"现言",value:"xianyan"},{label:"耽美",value:"danmei"},{label:"其它",value:"qita"}],type:n.FilterTypes.Picker}}}return s.prototype.popularNovels=function(n,a){return t(this,arguments,void 0,(function(t,n){var a,o,s,u,h,f=this,v=n.filters;return e(this,(function(t){switch(t.label){case 0:return a="all"===v.genre.value?this.site:"".concat(this.site,"c/").concat(v.genre.value,".html"),[4,(0,r.fetchApi)(a)];case 1:if(!(o=t.sent()).ok)throw new Error("[Quanben] Failed to fetch: ".concat(a," - ").concat(o.status));return u=i.load,[4,o.text()];case 2:return s=u.apply(void 0,[t.sent()]),h=[],s("div.list2").each((function(t,e){var n,r,a,i=s(e),o=i.find("h3 > a").first(),u=null===(n=o.attr("href"))||void 0===n?void 0:n.trim(),v=o.text().trim(),p=(null===(r=i.find("img").attr("src"))||void 0===r?void 0:r.trim())||(null===(a=i.find("img").attr("data-src"))||void 0===a?void 0:a.trim()),d=c(p,f.site)||f.defaultCover;if(u&&v){var b=l(u);b&&h.push({name:v,path:b,cover:d})}})),s("ul.list").each((function(t,e){var n,r=s(e).find("li").first(),a=r.find("a").first(),i=null===(n=a.attr("href"))||void 0===n?void 0:n.trim(),o=a.text().trim()||r.find("span.author").text().trim(),c=f.defaultCover;if(i&&o){var u=l(i);u&&h.push({name:o,path:u,cover:c})}})),[2,h]}}))}))},s.prototype.parseNovel=function(n){return t(this,void 0,void 0,(function(){var t,o,l,s,u,h,f,v,p,d;return e(this,(function(e){switch(e.label){case 0:if(!(t=n.replace(/^\/amp/,"").replace(/^\//,"")).startsWith("n/")||!t.endsWith("/"))throw new Error("[Quanben parseNovel] Invalid path: ".concat(n));return o=this.site+t,[4,(0,r.fetchApi)(o)];case 1:if(!(l=e.sent()).ok)throw new Error("[Quanben parseNovel] Failed to fetch: ".concat(o));return u=i.load,[4,l.text()];case 2:return s=u.apply(void 0,[e.sent()]),h=function(t){var e;return(null===(e=s('meta[property="'.concat(t,'"]')).attr("content"))||void 0===e?void 0:e.trim())||""},f=s("div.list2").first(),v=s("div.description").first(),p=h("og:novel:status"),d={path:t,name:h("og:novel:book_name")||f.find("h3").text().trim()||"Unknown Novel",cover:h("og:image")||c(f.find("img").attr("src"),this.site)||this.defaultCover,summary:h("og:description")||v.find("p").text().trim()||v.text().trim()||void 0,author:h("og:novel:author")||f.find("p:contains('作者:') span").text().trim()||void 0,status:p?p.includes("完结")?a.NovelStatus.Completed:a.NovelStatus.Ongoing:a.NovelStatus.Unknown,genres:h("og:novel:category")||f.find("p:contains('类别:') span").text().trim()||void 0},[4,this.parseChapterList(t)];case 3:return d.chapters=e.sent(),[2,d]}}))}))},s.prototype.parseChapterList=function(n){return t(this,void 0,void 0,(function(){var t,a,o,l,c,s,u;return e(this,(function(e){switch(e.label){case 0:return n.startsWith("n/")&&n.endsWith("/")&&(t=null===(u=n.match(/^n\/([^/]+)\//))||void 0===u?void 0:u[1])?(a="https://quanben5.com/n/".concat(t,"/xiaoshuo.html"),[4,(0,r.fetchApi)(a)]):[2,[]];case 1:return(o=e.sent()).ok?(c=i.load,[4,o.text()]):[2,[]];case 2:return l=c.apply(void 0,[e.sent()]),s=[],l("ul li a").each((function(e,n){var r=l(n).text().trim();if(r){var a=s.length+1;s.push({name:r,path:"".concat(t,"/").concat(a,".html"),chapterNumber:a})}})),[2,s]}}))}))},s.prototype.parseChapter=function(n){return t(this,void 0,void 0,(function(){var t,a,i;return e(this,(function(e){switch(e.label){case 0:if(!n.includes("/")||n.endsWith("/"))throw new Error('[Quanben] Invalid chapter path: "'.concat(n,'"'));return t="".concat(this.site,"n/").concat(n),[4,(0,r.fetchApi)(t)];case 1:if(!(a=e.sent()).ok)throw new Error("[Quanben] Failed to fetch chapter: ".concat(t));return i=this.extractChapterContent,[4,a.text()];case 2:return[2,i.apply(this,[e.sent()])]}}))}))},s.prototype.extractChapterContent=function(t){var e=(0,i.load)(t)("#contentbody, #content, .content").first();return e.length?(e.find('script, style, ins, iframe, [class*="ads"], [id*="ads"], [class*="google"], [id*="google"], [class*="recommend"], div[align="center"]').remove(),(e.html()||"").replace(/[\t ]+/g," ").trim()||"Error: Chapter content empty."):"Error: Chapter content not found."},s.prototype.searchNovels=function(n){return t(this,void 0,void 0,(function(){var t,a,o,s,u,h=this;return e(this,(function(e){switch(e.label){case 0:return t="".concat(this.site,"index.php?c=book&a=search&keywords=").concat(encodeURIComponent(n)),[4,(0,r.fetchApi)(t)];case 1:return(a=e.sent()).ok?(s=i.load,[4,a.text()]):[2,[]];case 2:return o=s.apply(void 0,[e.sent()]),u=[],o("div.list2").each((function(t,e){var n=o(e),r=n.find("h3 > a").first(),a=r.attr("href"),i=r.text().trim(),s=c(n.find("img").attr("src")||n.find("img").attr("data-src"),h.site);if(a&&i){var f=l(c(a,h.site));f&&u.push({name:i,path:f,cover:s||h.defaultCover})}})),[2,u]}}))}))},s.prototype.fetchImage=function(n){return t(this,void 0,void 0,(function(){return e(this,(function(t){return[2,(0,r.fetchApi)(n)]}))}))},s}();exports.default=new s;
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var filterInputs_1 = require("@libs/filterInputs");
+var fetch_1 = require("@libs/fetch");
+var novelStatus_1 = require("@libs/novelStatus");
+var cheerio_1 = require("cheerio");
+var defaultCover_1 = require("@libs/defaultCover");
+var parseUrl = function (url) {
+    if (!url)
+        return undefined;
+    try {
+        return new URL(url, 'https://www.quanben.io');
+    }
+    catch (_a) {
+        return undefined;
+    }
+};
+var getStandardNovelPath = function (url) {
+    var _a;
+    var parsedUrl = parseUrl(url);
+    if (!parsedUrl)
+        return undefined;
+    var match = parsedUrl.pathname.match(/^(\/amp)?(\/n\/[^/]+\/)/);
+    return (_a = match === null || match === void 0 ? void 0 : match[2]) === null || _a === void 0 ? void 0 : _a.replace(/^\//, '');
+};
+// const getChapterFileName = (url?: string): string | undefined => {
+//   const parsedUrl = parseUrl(url);
+//   if (!parsedUrl) return undefined;
+//   const fileName = parsedUrl.pathname.split('/').pop();
+//   if (fileName && /^\d+\.html$/.test(fileName)) return fileName;
+//   return undefined;
+// };
+var makeAbsolute = function (relativeUrl, baseUrl) {
+    if (!relativeUrl || !baseUrl)
+        return undefined;
+    try {
+        if (relativeUrl.startsWith('//'))
+            return 'https:' + relativeUrl;
+        if (/^https?:\/\//.test(relativeUrl))
+            return relativeUrl;
+        return new URL(relativeUrl, baseUrl).href;
+    }
+    catch (_a) {
+        return undefined;
+    }
+};
+var QuanbenPlugin = /** @class */ (function () {
+    function QuanbenPlugin() {
+        this.id = 'quanben';
+        this.name = 'Quanben';
+        this.site = 'https://www.quanben.io/';
+        this.version = '1.1.1';
+        this.icon = 'src/cn/quanben/icon.png';
+        this.defaultCover = defaultCover_1.defaultCover;
+        // filters
+        this.filters = {
+            genre: {
+                label: '分类',
+                value: 'all',
+                options: [
+                    { label: '全部', value: 'all' },
+                    { label: '玄幻', value: 'xuanhuan' },
+                    { label: '都市', value: 'dushi' },
+                    { label: '言情', value: 'yanqing' },
+                    { label: '穿越', value: 'chuanyue' },
+                    { label: '青春', value: 'qingchun' },
+                    { label: '仙侠', value: 'xianxia' },
+                    { label: '灵异', value: 'lingyi' },
+                    { label: '悬疑', value: 'xuanyi' },
+                    { label: '历史', value: 'lishi' },
+                    { label: '军事', value: 'junshi' },
+                    { label: '游戏', value: 'youxi' },
+                    { label: '竞技', value: 'jingji' },
+                    { label: '科幻', value: 'kehuan' },
+                    { label: '职场', value: 'zhichang' },
+                    { label: '官场', value: 'guanchang' },
+                    { label: '现言', value: 'xianyan' },
+                    { label: '耽美', value: 'danmei' },
+                    { label: '其它', value: 'qita' },
+                ],
+                type: filterInputs_1.FilterTypes.Picker,
+            },
+        };
+    }
+    // homepage, when you first open the extension (with the applied filters if any)
+    QuanbenPlugin.prototype.popularNovels = function (_pageNo_1, _a) {
+        return __awaiter(this, arguments, void 0, function (_pageNo, _b) {
+            var url, res, $, _c, novels;
+            var _this = this;
+            var filters = _b.filters;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        url = filters.genre.value === 'all'
+                            ? this.site
+                            : "".concat(this.site, "c/").concat(filters.genre.value, ".html");
+                        return [4 /*yield*/, (0, fetch_1.fetchApi)(url)];
+                    case 1:
+                        res = _d.sent();
+                        if (!res.ok)
+                            throw new Error("[Quanben] Failed to fetch: ".concat(url, " - ").concat(res.status));
+                        _c = cheerio_1.load;
+                        return [4 /*yield*/, res.text()];
+                    case 2:
+                        $ = _c.apply(void 0, [_d.sent()]);
+                        novels = [];
+                        $('div.list2').each(function (_i, list2) {
+                            var _a, _b, _c;
+                            var $list2 = $(list2);
+                            var $link = $list2.find('h3 > a').first();
+                            var href = (_a = $link.attr('href')) === null || _a === void 0 ? void 0 : _a.trim();
+                            var name = $link.text().trim();
+                            var rawCover = ((_b = $list2.find('img').attr('src')) === null || _b === void 0 ? void 0 : _b.trim()) ||
+                                ((_c = $list2.find('img').attr('data-src')) === null || _c === void 0 ? void 0 : _c.trim());
+                            var cover = makeAbsolute(rawCover, _this.site) || _this.defaultCover;
+                            if (href && name) {
+                                var path = getStandardNovelPath(href);
+                                if (path)
+                                    novels.push({ name: name, path: path, cover: cover });
+                            }
+                        });
+                        // only first entry bcs the others dont have an image
+                        $('ul.list').each(function (_i, ul) {
+                            var _a;
+                            var $firstLi = $(ul).find('li').first();
+                            var $a = $firstLi.find('a').first();
+                            var href = (_a = $a.attr('href')) === null || _a === void 0 ? void 0 : _a.trim();
+                            var name = $a.text().trim() || $firstLi.find('span.author').text().trim();
+                            var cover = _this.defaultCover;
+                            if (href && name) {
+                                var path = getStandardNovelPath(href);
+                                if (path)
+                                    novels.push({ name: name, path: path, cover: cover });
+                            }
+                        });
+                        return [2 /*return*/, novels];
+                }
+            });
+        });
+    };
+    // novel details and metadata
+    QuanbenPlugin.prototype.parseNovel = function (novelPath) {
+        return __awaiter(this, void 0, void 0, function () {
+            var standardPath, fullUrl, res, $, _a, getMeta, $info, $desc, statusText, novel;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        standardPath = novelPath.replace(/^\/amp/, '').replace(/^\//, '');
+                        if (!standardPath.startsWith('n/') || !standardPath.endsWith('/'))
+                            throw new Error("[Quanben parseNovel] Invalid path: ".concat(novelPath));
+                        fullUrl = this.site + standardPath;
+                        return [4 /*yield*/, (0, fetch_1.fetchApi)(fullUrl)];
+                    case 1:
+                        res = _c.sent();
+                        if (!res.ok)
+                            throw new Error("[Quanben parseNovel] Failed to fetch: ".concat(fullUrl));
+                        _a = cheerio_1.load;
+                        return [4 /*yield*/, res.text()];
+                    case 2:
+                        $ = _a.apply(void 0, [_c.sent()]);
+                        getMeta = function (prop) { var _a; return ((_a = $("meta[property=\"".concat(prop, "\"]")).attr('content')) === null || _a === void 0 ? void 0 : _a.trim()) || ''; };
+                        $info = $('div.list2').first();
+                        $desc = $('div.description').first();
+                        statusText = getMeta('og:novel:status');
+                        _b = {
+                            path: standardPath,
+                            name: getMeta('og:novel:book_name') ||
+                                $info.find('h3').text().trim() ||
+                                'Unknown Novel',
+                            cover: getMeta('og:image') ||
+                                makeAbsolute($info.find('img').attr('src'), this.site) ||
+                                this.defaultCover,
+                            summary: getMeta('og:description') ||
+                                $desc.find('p').text().trim() ||
+                                $desc.text().trim() ||
+                                undefined,
+                            author: getMeta('og:novel:author') ||
+                                $info.find("p:contains('作者:') span").text().trim() ||
+                                undefined,
+                            status: statusText
+                                ? statusText.includes('完结')
+                                    ? novelStatus_1.NovelStatus.Completed
+                                    : novelStatus_1.NovelStatus.Ongoing
+                                : novelStatus_1.NovelStatus.Unknown,
+                            genres: getMeta('og:novel:category') ||
+                                $info.find("p:contains('类别:') span").text().trim() ||
+                                undefined
+                        };
+                        return [4 /*yield*/, this.parseChapterList(standardPath)];
+                    case 3:
+                        novel = (_b.chapters = _c.sent(),
+                            _b);
+                        return [2 /*return*/, novel];
+                }
+            });
+        });
+    };
+    QuanbenPlugin.prototype.parseChapterList = function (novelPath) {
+        return __awaiter(this, void 0, void 0, function () {
+            var novelSlug, mirrorUrl, res, $, _a, chapters;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (!novelPath.startsWith('n/') || !novelPath.endsWith('/'))
+                            return [2 /*return*/, []];
+                        novelSlug = (_b = novelPath.match(/^n\/([^/]+)\//)) === null || _b === void 0 ? void 0 : _b[1];
+                        if (!novelSlug)
+                            return [2 /*return*/, []];
+                        mirrorUrl = "https://quanben5.com/n/".concat(novelSlug, "/xiaoshuo.html");
+                        return [4 /*yield*/, (0, fetch_1.fetchApi)(mirrorUrl)];
+                    case 1:
+                        res = _c.sent();
+                        if (!res.ok)
+                            return [2 /*return*/, []];
+                        _a = cheerio_1.load;
+                        return [4 /*yield*/, res.text()];
+                    case 2:
+                        $ = _a.apply(void 0, [_c.sent()]);
+                        chapters = [];
+                        $('ul li a').each(function (_, el) {
+                            var name = $(el).text().trim();
+                            if (!name)
+                                return;
+                            var i = chapters.length + 1;
+                            chapters.push({
+                                name: name,
+                                path: "".concat(novelSlug, "/").concat(i, ".html"),
+                                chapterNumber: i,
+                            });
+                        });
+                        return [2 /*return*/, chapters];
+                }
+            });
+        });
+    };
+    QuanbenPlugin.prototype.parseChapter = function (chapterPath) {
+        return __awaiter(this, void 0, void 0, function () {
+            var url, res, _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        if (!chapterPath.includes('/') || chapterPath.endsWith('/'))
+                            throw new Error("[Quanben] Invalid chapter path: \"".concat(chapterPath, "\""));
+                        url = "".concat(this.site, "n/").concat(chapterPath);
+                        return [4 /*yield*/, (0, fetch_1.fetchApi)(url)];
+                    case 1:
+                        res = _b.sent();
+                        if (!res.ok)
+                            throw new Error("[Quanben] Failed to fetch chapter: ".concat(url));
+                        _a = this.extractChapterContent;
+                        return [4 /*yield*/, res.text()];
+                    case 2: return [2 /*return*/, _a.apply(this, [_b.sent()])];
+                }
+            });
+        });
+    };
+    // Helper function to extract and clean chapter content from HTML body
+    QuanbenPlugin.prototype.extractChapterContent = function (body) {
+        var $ = (0, cheerio_1.load)(body);
+        var $content = $('#contentbody, #content, .content').first();
+        if (!$content.length)
+            return 'Error: Chapter content not found.';
+        $content
+            .find('script, style, ins, iframe, [class*="ads"], [id*="ads"], [class*="google"], [id*="google"], [class*="recommend"], div[align="center"]')
+            .remove();
+        return (($content.html() || '').replace(/[\t ]+/g, ' ').trim() ||
+            'Error: Chapter content empty.');
+    };
+    // add search
+    QuanbenPlugin.prototype.searchNovels = function (searchTerm) {
+        return __awaiter(this, void 0, void 0, function () {
+            var url, res, $, _a, novels;
+            var _this = this;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        url = "".concat(this.site, "index.php?c=book&a=search&keywords=").concat(encodeURIComponent(searchTerm));
+                        return [4 /*yield*/, (0, fetch_1.fetchApi)(url)];
+                    case 1:
+                        res = _b.sent();
+                        if (!res.ok)
+                            return [2 /*return*/, []];
+                        _a = cheerio_1.load;
+                        return [4 /*yield*/, res.text()];
+                    case 2:
+                        $ = _a.apply(void 0, [_b.sent()]);
+                        novels = [];
+                        $('div.list2').each(function (_i, el) {
+                            var $el = $(el);
+                            var $link = $el.find('h3 > a').first();
+                            var href = $link.attr('href');
+                            var name = $link.text().trim();
+                            var cover = makeAbsolute($el.find('img').attr('src') || $el.find('img').attr('data-src'), _this.site);
+                            if (href && name) {
+                                var path = getStandardNovelPath(makeAbsolute(href, _this.site));
+                                if (path)
+                                    novels.push({
+                                        name: name,
+                                        path: path,
+                                        cover: cover || _this.defaultCover,
+                                    });
+                            }
+                        });
+                        return [2 /*return*/, novels];
+                }
+            });
+        });
+    };
+    QuanbenPlugin.prototype.fetchImage = function (url) {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, (0, fetch_1.fetchApi)(url)];
+            });
+        });
+    };
+    return QuanbenPlugin;
+}());
+exports.default = new QuanbenPlugin();
