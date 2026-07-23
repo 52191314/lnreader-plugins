@@ -56,12 +56,16 @@ var LightNovelWorldPlugin = /** @class */ (function () {
         this.name = 'LightNovelWorld';
         this.icon = 'src/en/lightnovelworld/icon.png';
         this.site = 'https://lightnovelworld.org/';
-        this.version = '1.1.8';
+        this.version = '1.1.9';
         this.filters = {
             order: {
-                value: 'popular',
+                value: 'rank',
                 label: 'Order by',
                 options: [
+                    { label: 'Rank', value: 'rank' },
+                    { label: 'Reviews', value: 'reviews' },
+                    { label: 'Comments', value: 'comments' },
+                    { label: 'Collections', value: 'collections' },
                     { label: 'Popular', value: 'popular' },
                     { label: 'New', value: 'new' },
                     { label: 'Updates', value: 'updates' },
@@ -146,19 +150,30 @@ var LightNovelWorldPlugin = /** @class */ (function () {
     }
     LightNovelWorldPlugin.prototype.popularNovels = function (pageNo_1, _a) {
         return __awaiter(this, arguments, void 0, function (pageNo, _b) {
-            var page, genre, status, order, url, html;
+            var page, order, rankingSorts, url, genre, status_1, html;
             var _c, _d, _e;
             var showLatestNovels = _b.showLatestNovels, filters = _b.filters;
             return __generator(this, function (_f) {
                 switch (_f.label) {
                     case 0:
                         page = Math.max(1, pageNo || 1);
-                        genre = ((_c = filters === null || filters === void 0 ? void 0 : filters.genre) === null || _c === void 0 ? void 0 : _c.value) || 'all';
-                        status = ((_d = filters === null || filters === void 0 ? void 0 : filters.status) === null || _d === void 0 ? void 0 : _d.value) || 'all';
                         order = showLatestNovels
                             ? 'updates'
-                            : ((_e = filters === null || filters === void 0 ? void 0 : filters.order) === null || _e === void 0 ? void 0 : _e.value) || 'popular';
-                        url = "".concat(this.site, "genre-").concat(genre, "/?status=").concat(status, "&order=").concat(order, "&page=").concat(page);
+                            : ((_c = filters === null || filters === void 0 ? void 0 : filters.order) === null || _c === void 0 ? void 0 : _c.value) || 'rank';
+                        rankingSorts = new Set([
+                            'rank',
+                            'reviews',
+                            'comments',
+                            'collections',
+                        ]);
+                        if (rankingSorts.has(order)) {
+                            url = "".concat(this.site, "ranking/?sort=").concat(order, "&page=").concat(page);
+                        }
+                        else {
+                            genre = ((_d = filters === null || filters === void 0 ? void 0 : filters.genre) === null || _d === void 0 ? void 0 : _d.value) || 'all';
+                            status_1 = ((_e = filters === null || filters === void 0 ? void 0 : filters.status) === null || _e === void 0 ? void 0 : _e.value) || 'all';
+                            url = "".concat(this.site, "genre-").concat(genre, "/?status=").concat(status_1, "&order=").concat(order, "&page=").concat(page);
+                        }
                         return [4 /*yield*/, (0, fetch_1.fetchText)(url)];
                     case 1:
                         html = _f.sent();
