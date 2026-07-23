@@ -8,7 +8,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     name = "LightNovelWorld";
     icon = "src/en/lightnovelworld/icon.png";
     site = "https://lightnovelworld.org";
-    version = "1.0.1";
+    version = "1.0.2";
 
     async popularNovels(
         pageNo: number,
@@ -22,29 +22,30 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     }
 
     async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
-        const fullUrl = novelPath.startsWith('http') 
-            ? novelPath 
-            : `${this.site}${novelPath.startsWith('/') ? '' : '/'}${novelPath}`;
+        const cleanPath = novelPath.endsWith('/') ? novelPath : `${novelPath}/`;
+        const fullUrl = cleanPath.startsWith('http') 
+            ? cleanPath 
+            : `${this.site}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
 
         const html = await fetchText(fullUrl);
         const $ = loadCheerio(html);
 
         const title = $('.novel-title, h1.title, .novel-name, h1, .book-title').first().text().trim() || 'Untitled Novel';
 
-        const imgEl = $('.cover img, .novel-cover img, .book-cover img, img.cover, .card-cover img').first();
+        const imgEl = $('.cover img, .novel-cover img, .book-cover img, img.cover, .card-cover img, .novel-cover-container img').first();
         const rawCover = imgEl.attr('src') || imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || '';
         const cover = rawCover.startsWith('http') 
             ? rawCover 
             : `${this.site}${rawCover.startsWith('/') ? '' : '/'}${rawCover}`;
 
-        const summary = $('.summary .content, .description, .novel-summary, .summary-content, .synopsis, .novel-desc').first().text().trim() || '';
+        const summary = $('.summary-content, .summary .content, .description, .novel-summary, .synopsis, .novel-description').first().text().trim() || '';
 
-        let author = $('.author a, .novel-author, .author-name').first().text().trim();
+        let author = $('.author a, .novel-author a, .author-name, .novel-author').first().text().trim();
         if (!author) {
-            author = $('.author').text().replace(/^author:\s*/i, '').trim() || 'Unknown Author';
+            author = $('.novel-author').text().replace(/^author:\s*/i, '').trim() || 'Unknown Author';
         }
 
-        const rawStatus = $('.novel-status, .status-label, .status').first().text().trim().toLowerCase();
+        const rawStatus = $('.status-badge, .novel-status, .status-label, .status').first().text().trim().toLowerCase();
         let status = NovelStatus.Unknown;
         if (rawStatus.includes('ongoing')) {
             status = NovelStatus.Ongoing;
@@ -55,32 +56,35 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
         }
 
         const genres: string[] = [];
-        $('.genres a, .categories a, .genre-item, .tags a, .genre-pill').each((_, el) => {
+        $('.genres a, .categories a, .genre-item, .tags a, .genre-tag').each((_, el) => {
             const g = $(el).text().trim();
             if (g && !genres.includes(g)) {
                 genres.push(g);
             }
         });
 
-        const chapters: Plugin.ChapterItem[] = [];
-        let chapterEls = $('.chapter-list li, ul.chapters li, .chapter-item');
-        if (chapterEls.length === 0) {
-            chapterEls = $('.chapter-list a, .chapters-list a');
-        }
+        // Fetch dedicated chapters list page (/novel/name/chapters/)
+        const chaptersUrl = `${fullUrl.replace(/\/$/, '')}/chapters/`;
+        const chaptersHtml = await fetchText(chaptersUrl);
+        const $chap = loadCheerio(chaptersHtml);
 
-        chapterEls.each((idx, el) => {
-            const item = $(el);
-            const linkEl = item.is('a') ? item : item.find('a').first();
-            const chapName = linkEl.find('.chapter-title, .title, span.name').text().trim() || linkEl.text().trim();
-            let chapPath = linkEl.attr('href') || '';
+        const chapters: Plugin.ChapterItem[] = [];
+
+        $chap('.chapter-card, .chapter-item, .chapter-list li').each((idx, el) => {
+            const item = $chap(el);
+            const titleText = item.find('.chapter-title, h3, .title, span.name').text().trim() || item.text().trim();
+            const onClickAttr = item.attr('onclick') || '';
+            const matchPath = onClickAttr.match(/'([^']+)'/);
+
+            let chapPath = matchPath ? matchPath[1] : (item.is('a') ? item.attr('href') : item.find('a').first().attr('href')) || '';
             if (chapPath.startsWith(this.site)) {
                 chapPath = chapPath.substring(this.site.length);
             }
-            const releaseTime = item.find('.chapter-time, .release-time, time, span.time').text().trim() || undefined;
+            const releaseTime = item.find('.chapter-time, .release-time, time, span.time, p.chapter-time').text().trim() || undefined;
 
-            if (chapName && chapPath) {
+            if (titleText && chapPath) {
                 chapters.push({
-                    name: chapName,
+                    name: titleText,
                     path: chapPath,
                     releaseTime,
                     chapterNumber: idx + 1,
@@ -108,12 +112,12 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
         const html = await fetchText(fullUrl);
         const $ = loadCheerio(html);
 
-        const container = $('#chapter-container, .chapter-content, #chapter-body, .chapter-text, .chr-c, #chr-content').first();
+        const container = $('#chapterText, .chapter-text, #chapter-container, .chapter-content, #chapter-body, .chr-c, #chr-content').first();
         if (!container.length) {
             return '<p>No content found.</p>';
         }
 
-        container.find('script, style, ins, .ads, .ad-container, .ad-wrapper, .watermark, #ad-banner, iframe, .ad-box, .pub-ad').remove();
+        container.find('script, style, ins, .ads, .ad-container, .ad-wrapper, .watermark, #ad-banner, iframe, .ad-box, .pub-ad, .chapter-ad-container').remove();
         container.find('*').each((_, el) => {
             const attribs = el.attribs || {};
             for (const attr in attribs) {
