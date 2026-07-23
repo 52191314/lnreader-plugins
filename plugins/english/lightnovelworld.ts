@@ -9,7 +9,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   name = 'LightNovelWorld';
   icon = 'src/en/lightnovelworld/icon.png';
   site = 'https://lightnovelworld.org/';
-  version = '1.1.9';
+  version = '1.0.0';
 
   async popularNovels(
     pageNo: number,
@@ -18,40 +18,133 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
       filters,
     }: Plugin.PopularNovelsOptions<typeof this.filters>,
   ): Promise<Plugin.NovelItem[]> {
-    const page = Math.max(1, pageNo || 1);
-    const order = showLatestNovels
-      ? 'updates'
-      : filters?.order?.value || 'rank';
-
-    const rankingSorts = new Set([
-      'rank',
-      'reviews',
-      'comments',
-      'collections',
-    ]);
-
-    let url: string;
-    if (rankingSorts.has(order)) {
-      url = `${this.site}ranking/?sort=${order}&page=${page}`;
-    } else {
-      const genre = filters?.genre?.value || 'all';
-      const status = filters?.status?.value || 'all';
-      url = `${this.site}genre-${genre}/?status=${status}&order=${order}&page=${page}`;
-    }
-
+    const genre = filters.genre.value;
+    const status = filters.status.value;
+    const order = showLatestNovels ? 'updates' : filters.order.value;
+    const url = `${this.site}genre-${genre}/?status=${status}&order=${order}&page=${pageNo}`;
     const html = await fetchText(url);
     return this.parseNovelList(html);
   }
 
+  async searchNovels(
+    searchTerm: string,
+    pageNo: number,
+  ): Promise<Plugin.NovelItem[]> {
+    if (pageNo > 1) return [];
+
+    const url = `${this.site}search?keyword=${encodeURIComponent(searchTerm)}`;
+    const html = await fetchText(url);
+    return this.parseNovelList(html);
+  }
+
+  async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
+    const fullUrl = novelPath.startsWith('http')
+      ? novelPath
+      : `${this.site}${novelPath}`;
+
+    const html = await fetchText(fullUrl);
+    const $ = loadCheerio(html);
+
+    const title =
+      $('.novel-title, h1.title, .novel-name, h1, .book-title')
+        .first()
+        .text()
+        .trim() || 'Untitled';
+
+    let cover =
+      $('meta[property="og:image"]').attr('content') ||
+      $('.novel-cover img, .fixed-img img, .novel-info img')
+        .first()
+        .attr('src') ||
+      $('.novel-cover img, .fixed-img img, .novel-info img')
+        .first()
+        .attr('data-src') ||
+      '';
+
+    if (cover && !cover.startsWith('http')) {
+      cover = `${this.site}${cover.replace(/^\//, '')}`;
+    }
+
+    let author =
+      $('.author-name, .author a, .novel-info .author, a[href*="/author/"]')
+        .first()
+        .text()
+        .trim() || '';
+
+    author = author.replace(/^Author:\s*/i, '').trim();
+
+    const genres: string[] = [];
+    $('a[href*="/genre/"], .genre-item, .categories a').each((_, el) => {
+      const g = $(el).text().trim();
+      if (g && !genres.includes(g) && g.toLowerCase() !== 'all') {
+        genres.push(g);
+      }
+    });
+
+    const rawStatus = $(
+      '.status-badge, .novel-status, .status-label, .status, .badge, .tag',
+    )
+      .text()
+      .toLowerCase();
+
+    let status = NovelStatus.Unknown;
+    if (rawStatus.includes('ongoing')) status = NovelStatus.Ongoing;
+    else if (rawStatus.includes('completed') || rawStatus.includes('complete'))
+      status = NovelStatus.Completed;
+    else if (rawStatus.includes('hiatus') || rawStatus.includes('paused'))
+      status = NovelStatus.OnHiatus;
+
+    const summaryContainer = $('.summary-content').first();
+    const summaryParagraphs: string[] = [];
+
+    summaryContainer.find('p').each((_, el) => {
+      const pText = $(el).text().trim();
+      if (!pText) return;
+
+      if (pText.startsWith('–') || pText.startsWith('-')) {
+        if (summaryParagraphs.length > 0) {
+          summaryParagraphs[summaryParagraphs.length - 1] += ` ${pText}`;
+        } else {
+          summaryParagraphs.push(pText);
+        }
+      } else {
+        summaryParagraphs.push(pText);
+      }
+    });
+
+    let summary = '';
+    if (summaryParagraphs.length > 0) {
+      summary = summaryParagraphs.join('\n\n');
+    } else {
+      summary = summaryContainer.text().trim();
+    }
+
+    const novel: Plugin.SourceNovel = {
+      path: novelPath,
+      name: title,
+      cover,
+      author,
+      status,
+      genres: genres.join(', '),
+      summary,
+    };
+
+    return novel;
+  }
+
   async fetchAllChapters(slug: string): Promise<Plugin.ChapterItem[]> {
+    let cleanSlug = slug.replace(/^\//, '').replace(/\/$/, '');
+    if (cleanSlug.startsWith('novel/')) {
+      cleanSlug = cleanSlug.replace(/^novel\//, '');
+    }
+
     const LIMIT = 500;
-    const apiBase = `${this.site}api/novel/${slug}/chapters/?limit=${LIMIT}`;
+    const apiBase = `${this.site}api/novel/${cleanSlug}/chapters/?limit=${LIMIT}`;
 
     const firstRes = await fetchApi(`${apiBase}&offset=0`);
     const firstJson = (await firstRes.json()) as {
       chapters: Array<{ number: number; title: string; display_name?: string }>;
       total_chapters: number;
-      has_more: boolean;
     };
 
     const total = firstJson.total_chapters || firstJson.chapters.length;
@@ -74,8 +167,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
             }>;
           };
           return json.chapters || [];
-        } catch (err) {
-          console.error(`Failed to fetch chapters at offset ${offset}:`, err);
+        } catch {
           return [];
         }
       }),
@@ -88,7 +180,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
       const name = (ch.title || `Chapter ${num}`).trim();
       allChapters.push({
         name,
-        path: `novel/${slug}/chapter/${num}/`,
+        path: `novel/${cleanSlug}/chapter/${num}/`,
         chapterNumber: num,
       });
     }
@@ -97,221 +189,52 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     return allChapters;
   }
 
-  async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
-    let cleanPath = novelPath.replace(/^\//, '');
-    if (!cleanPath.endsWith('/')) cleanPath += '/';
-
-    const fullUrl = cleanPath.startsWith('http')
-      ? cleanPath
-      : `${this.site}${cleanPath}`;
-
-    const html = await fetchText(fullUrl);
-    const $ = loadCheerio(html);
-
-    const title =
-      $('.novel-title, h1.title, .novel-name, h1, .book-title')
-        .first()
-        .text()
-        .trim() || 'Untitled Novel';
-
-    const imgEl = $(
-      '.cover img, .novel-cover img, .book-cover img, img.cover, .card-cover img, .novel-cover-container img',
-    ).first();
-    const rawCover =
-      imgEl.attr('src') ||
-      imgEl.attr('data-src') ||
-      imgEl.attr('data-lazy-src') ||
-      '';
-    const cover = rawCover ? new URL(rawCover, this.site).href : '';
-
-    const summaryEl = $(
-      '.summary-content, .novel-summary, .synopsis, .summary .content',
-    ).first();
-    summaryEl.find('br').replaceWith('\n');
-    const paragraphs = summaryEl
-      .find('p')
-      .map((_, el) => $(el).text().trim())
-      .get()
-      .filter(Boolean);
-    let summary = '';
-    if (paragraphs.length > 0) {
-      for (const p of paragraphs) {
-        if (summary && (p.startsWith('–') || p.startsWith('-'))) {
-          summary += ' ' + p;
-        } else {
-          summary += (summary ? '\n\n' : '') + p;
-        }
-      }
-    } else {
-      summary = summaryEl.text().trim();
-    }
-
-    const author =
-      $('.author a, .novel-author a, .author-name, .novel-author')
-        .first()
-        .text()
-        .trim() || 'Unknown Author';
-    const rawStatus = $('.status-badge, .novel-status, .status-label, .status')
-      .first()
-      .text()
-      .trim()
-      .toLowerCase();
-    let status = NovelStatus.Unknown;
-    if (rawStatus.includes('ongoing')) status = NovelStatus.Ongoing;
-    else if (rawStatus.includes('completed') || rawStatus.includes('complete'))
-      status = NovelStatus.Completed;
-    else if (rawStatus.includes('hiatus') || rawStatus.includes('paused'))
-      status = NovelStatus.OnHiatus;
-
-    const genres: string[] = [];
-    $('.genres a, .categories a, .genre-item, .tags a, .genre-tag').each(
-      (_, el) => {
-        const g = $(el).text().trim();
-        if (g && !genres.includes(g)) {
-          genres.push(g);
-        }
-      },
-    );
-
-    const slug = cleanPath.replace(/^novel\//, '').replace(/\/$/, '');
-    let chapters: Plugin.ChapterItem[] = [];
-
-    if (slug) {
-      try {
-        chapters = await this.fetchAllChapters(slug);
-      } catch (error) {
-        console.error('Failed to fetch chapter list:', error);
-      }
-    }
-
-    return {
-      path: cleanPath,
-      name: title,
-      cover,
-      summary,
-      author,
-      status,
-      genres: genres.join(', '),
-      chapters,
-    };
-  }
-
   async parseChapter(chapterPath: string): Promise<string> {
-    const cleanChapPath = chapterPath.replace(/^\//, '');
-    const fullUrl = cleanChapPath.startsWith('http')
-      ? cleanChapPath
-      : `${this.site}${cleanChapPath}`;
+    const fullUrl = chapterPath.startsWith('http')
+      ? chapterPath
+      : `${this.site}${chapterPath}`;
 
     const html = await fetchText(fullUrl);
     const $ = loadCheerio(html);
 
-    const container = $(
-      '#chapterText, .chapter-text, #chapter-container, .chapter-content, #chapter-body, .chr-c, #chr-content',
+    const contentContainer = $(
+      '#chapter-container, .chapter-content, .content, #content, .chapter-body',
     ).first();
-    if (!container.length) {
-      return '<p>No content found.</p>';
-    }
 
-    container
+    contentContainer
       .find(
-        'script, style, ins, .ads, .ad-container, .ad-wrapper, .watermark, #ad-banner, iframe, .ad-box, .pub-ad, .chapter-ad-container',
+        'script, style, ins, .ads, .ad-container, .adsbygoogle, .chapter-review, .restore-scroll',
       )
       .remove();
-    container.find('*').each((_, el) => {
-      const attribs = el.attribs || {};
-      for (const attr in attribs) {
-        if (attr.startsWith('on') || attr === 'style') {
-          $(el).removeAttr(attr);
-        }
-      }
-    });
 
-    const content = container.html()?.trim() || '<p>No content found.</p>';
-    return content.replace(/[\u200B-\u200D\uFEFF]/g, '');
+    return contentContainer.html() || '';
   }
 
-  async searchNovels(
-    searchTerm: string,
-    pageNo: number,
-  ): Promise<Plugin.NovelItem[]> {
-    if (!searchTerm || !searchTerm.trim()) return [];
-    const url = `${this.site}api/search/?q=${encodeURIComponent(searchTerm.trim())}`;
-    try {
-      const res = await fetchApi(url);
-      const json = (await res.json()) as { novels?: Array<any> };
-      if (!json || !Array.isArray(json.novels)) {
-        return [];
-      }
-      return json.novels
-        .map((item: any) => {
-          const rawCover = item.cover_path || '';
-          const cover = rawCover ? new URL(rawCover, this.site).href : '';
-          const slug = item.slug || '';
-          const path = slug ? `novel/${slug}/` : '';
-
-          return {
-            name: item.title || 'Untitled',
-            cover,
-            path,
-          };
-        })
-        .filter((item: Plugin.NovelItem) => !!item.path && !!item.name);
-    } catch {
-      return [];
-    }
-  }
-
-  parseNovelList(html: string): Plugin.NovelItem[] {
+  private parseNovelList(html: string): Plugin.NovelItem[] {
     const $ = loadCheerio(html);
     const novels: Plugin.NovelItem[] = [];
-    const seen = new Set<string>();
 
-    $(
-      '.ranking-card, .recommendation-card, .boost-shelf-card, .novel-item, .novel-card',
-    ).each((_, el) => {
-      const item = $(el);
-      const linkEl = item.is('a[href*="/novel/"]')
-        ? item
-        : item.find("a[href*='/novel/']").first();
-      const rawPath =
-        linkEl.attr('href') || item.find('a.card-link').attr('href') || '';
-
-      if (!rawPath) return;
-
-      const titleEl = item
-        .find('.card-title, .novel-title, .boost-shelf-title, .title, h3')
-        .first();
-      const name =
-        linkEl.attr('title')?.trim() ||
-        item.find('a[title]').first().attr('title')?.trim() ||
-        item.find('img[alt]').first().attr('alt')?.trim() ||
-        titleEl.text().trim() ||
+    $('.novel-item, .book-item, .novel-list .item').each((_, el) => {
+      const $el = $(el);
+      const $a = $el.find('a').first();
+      const href = $a.attr('href');
+      const title =
+        $el.find('.novel-title, .title, h3, h4').first().text().trim() ||
+        $a.attr('title') ||
         '';
 
-      const imgEl = item.find('img.skel-img, .card-cover img, img').first();
-      const rawCover =
-        imgEl.attr('src') ||
-        imgEl.attr('data-src') ||
-        imgEl.attr('data-lazy-src') ||
-        item.find('[data-bg-image]').attr('data-bg-image') ||
+      let cover =
+        $el.find('img').first().attr('data-src') ||
+        $el.find('img').first().attr('src') ||
         '';
 
-      if (name && rawPath) {
-        let cleanPath = rawPath.startsWith('http')
-          ? new URL(rawPath).pathname
-          : rawPath;
-        cleanPath = cleanPath.replace(/^\//, '');
-        if (!cleanPath.endsWith('/')) cleanPath += '/';
-        if (seen.has(cleanPath)) return;
-        seen.add(cleanPath);
+      if (cover && !cover.startsWith('http')) {
+        cover = `${this.site}${cover.replace(/^\//, '')}`;
+      }
 
-        const cover = rawCover ? new URL(rawCover, this.site).href : '';
-
-        novels.push({
-          name,
-          cover,
-          path: cleanPath,
-        });
+      if (title && href) {
+        const path = href.replace(/^\//, '');
+        novels.push({ name: title, path, cover });
       }
     });
 
@@ -357,30 +280,17 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
         { label: 'Drama', value: 'drama' },
         { label: 'Eastern', value: 'eastern' },
         { label: 'Ecchi', value: 'ecchi' },
-        { label: 'Fan-fiction', value: 'fan-fiction' },
+        { label: 'Fanfiction', value: 'fanfiction' },
         { label: 'Fantasy', value: 'fantasy' },
-        { label: 'Game', value: 'game' },
-        { label: 'Gender Bender', value: 'gender-bender' },
         { label: 'Harem', value: 'harem' },
         { label: 'Historical', value: 'historical' },
         { label: 'Horror', value: 'horror' },
-        { label: 'Isekai', value: 'isekai' },
         { label: 'Josei', value: 'josei' },
-        { label: 'LGBT+', value: 'lgbt+' },
         { label: 'Magic', value: 'magic' },
-        { label: 'Magical Realism', value: 'magical-realism' },
-        { label: 'Manhua', value: 'manhua' },
         { label: 'Martial Arts', value: 'martial-arts' },
-        { label: 'Mature', value: 'mature' },
         { label: 'Mecha', value: 'mecha' },
-        { label: 'Military', value: 'military' },
-        { label: 'Modern Life', value: 'modern-life' },
-        { label: 'Movies', value: 'movies' },
         { label: 'Mystery', value: 'mystery' },
-        { label: 'Other', value: 'other' },
         { label: 'Psychological', value: 'psychological' },
-        { label: 'Realistic Fiction', value: 'realistic-fiction' },
-        { label: 'Reincarnation', value: 'reincarnation' },
         { label: 'Romance', value: 'romance' },
         { label: 'School Life', value: 'school-life' },
         { label: 'Sci-fi', value: 'sci-fi' },
@@ -393,21 +303,15 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
         { label: 'Smut', value: 'smut' },
         { label: 'Sports', value: 'sports' },
         { label: 'Supernatural', value: 'supernatural' },
-        { label: 'System', value: 'system' },
         { label: 'Tragedy', value: 'tragedy' },
-        { label: 'Urban', value: 'urban' },
-        { label: 'Urban Life', value: 'urban-life' },
-        { label: 'Video Games', value: 'video-games' },
-        { label: 'War', value: 'war' },
         { label: 'Wuxia', value: 'wuxia' },
         { label: 'Xianxia', value: 'xianxia' },
         { label: 'Xuanhuan', value: 'xuanhuan' },
         { label: 'Yaoi', value: 'yaoi' },
-        { label: 'Yuri', value: 'yuri' },
       ],
       type: FilterTypes.Picker,
     },
-  } satisfies Filters;
+  };
 }
 
 export default new LightNovelWorldPlugin();
