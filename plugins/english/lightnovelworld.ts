@@ -9,7 +9,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   name = 'LightNovelWorld';
   icon = 'src/en/lightnovelworld/icon.png';
   site = 'https://lightnovelworld.org/';
-  version = '1.1.7';
+  version = '1.1.8';
 
   async popularNovels(
     pageNo: number,
@@ -20,10 +20,11 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   ): Promise<Plugin.NovelItem[]> {
     const page = Math.max(1, pageNo || 1);
     const genre = filters?.genre?.value || 'all';
+    const status = filters?.status?.value || 'all';
     const order = showLatestNovels
       ? 'updates'
       : filters?.order?.value || 'popular';
-    const url = `${this.site}genre-${genre}/?order=${order}&page=${page}`;
+    const url = `${this.site}genre-${genre}/?status=${status}&order=${order}&page=${page}`;
     const html = await fetchText(url);
     return this.parseNovelList(html);
   }
@@ -311,6 +312,16 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
         { label: 'Popular', value: 'popular' },
         { label: 'New', value: 'new' },
         { label: 'Updates', value: 'updates' },
+      ],
+      type: FilterTypes.Picker,
+    },
+    status: {
+      value: 'all',
+      label: 'Status',
+      options: [
+        { label: 'All', value: 'all' },
+        { label: 'Ongoing', value: 'ongoing' },
+        { label: 'Completed', value: 'completed' },
       ],
       type: FilterTypes.Picker,
     },
