@@ -9,7 +9,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   name = 'LightNovelWorld';
   icon = 'src/en/lightnovelworld/icon.png';
   site = 'https://lightnovelworld.org/';
-  version = '1.1.8';
+  version = '1.1.9';
 
   async popularNovels(
     pageNo: number,
@@ -19,12 +19,26 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     }: Plugin.PopularNovelsOptions<typeof this.filters>,
   ): Promise<Plugin.NovelItem[]> {
     const page = Math.max(1, pageNo || 1);
-    const genre = filters?.genre?.value || 'all';
-    const status = filters?.status?.value || 'all';
     const order = showLatestNovels
       ? 'updates'
-      : filters?.order?.value || 'popular';
-    const url = `${this.site}genre-${genre}/?status=${status}&order=${order}&page=${page}`;
+      : filters?.order?.value || 'rank';
+
+    const rankingSorts = new Set([
+      'rank',
+      'reviews',
+      'comments',
+      'collections',
+    ]);
+
+    let url: string;
+    if (rankingSorts.has(order)) {
+      url = `${this.site}ranking/?sort=${order}&page=${page}`;
+    } else {
+      const genre = filters?.genre?.value || 'all';
+      const status = filters?.status?.value || 'all';
+      url = `${this.site}genre-${genre}/?status=${status}&order=${order}&page=${page}`;
+    }
+
     const html = await fetchText(url);
     return this.parseNovelList(html);
   }
@@ -306,9 +320,13 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
 
   filters = {
     order: {
-      value: 'popular',
+      value: 'rank',
       label: 'Order by',
       options: [
+        { label: 'Rank', value: 'rank' },
+        { label: 'Reviews', value: 'reviews' },
+        { label: 'Comments', value: 'comments' },
+        { label: 'Collections', value: 'collections' },
         { label: 'Popular', value: 'popular' },
         { label: 'New', value: 'new' },
         { label: 'Updates', value: 'updates' },
