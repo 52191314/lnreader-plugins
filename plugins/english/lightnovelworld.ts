@@ -1,4 +1,4 @@
-import { fetchText } from '@libs/fetch';
+import { fetchText, fetchApi } from '@libs/fetch';
 import { load as loadCheerio } from 'cheerio';
 import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
@@ -8,7 +8,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     name = "LightNovelWorld";
     icon = "src/en/lightnovelworld/icon.png";
     site = "https://lightnovelworld.org";
-    version = "1.0.2";
+    version = "1.0.3";
 
     async popularNovels(
         pageNo: number,
@@ -136,10 +136,31 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
         pageNo: number
     ): Promise<Plugin.NovelItem[]> {
         if (!searchTerm || !searchTerm.trim()) return [];
-        const page = Math.max(1, pageNo || 1);
-        const url = `${this.site}/search/?q=${encodeURIComponent(searchTerm.trim())}&page=${page}`;
-        const html = await fetchText(url);
-        return this.parseNovelList(html);
+        const url = `${this.site}/api/search/?q=${encodeURIComponent(searchTerm.trim())}`;
+        try {
+            const res = await fetchApi(url);
+            const json = await res.json() as { novels?: Array<any> };
+            if (!json || !Array.isArray(json.novels)) {
+                return [];
+            }
+            return json.novels.map((item: any) => {
+                const rawCover = item.cover_path || '';
+                const cover = rawCover.startsWith('http')
+                    ? rawCover
+                    : `${this.site}${rawCover.startsWith('/') ? '' : '/'}${rawCover}`;
+                
+                const slug = item.slug || '';
+                const path = slug ? `/novel/${slug}/` : '';
+
+                return {
+                    name: item.title || 'Untitled',
+                    cover,
+                    path,
+                };
+            }).filter((item: Plugin.NovelItem) => !!item.path && !!item.name);
+        } catch {
+            return [];
+        }
     }
 
     parseNovelList(html: string): Plugin.NovelItem[] {
