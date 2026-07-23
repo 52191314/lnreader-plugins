@@ -49,37 +49,113 @@ exports.LightNovelWorldPlugin = void 0;
 var fetch_1 = require("@libs/fetch");
 var cheerio_1 = require("cheerio");
 var novelStatus_1 = require("@libs/novelStatus");
+var filterInputs_1 = require("@libs/filterInputs");
 var LightNovelWorldPlugin = /** @class */ (function () {
     function LightNovelWorldPlugin() {
-        this.id = "lightnovelworld";
-        this.name = "LightNovelWorld";
-        this.icon = "src/en/lightnovelworld/icon.png";
-        this.site = "https://lightnovelworld.org/";
-        this.version = "1.1.6";
+        this.id = 'lightnovelworld';
+        this.name = 'LightNovelWorld';
+        this.icon = 'src/en/lightnovelworld/icon.png';
+        this.site = 'https://lightnovelworld.org/';
+        this.version = '1.1.7';
+        this.filters = {
+            order: {
+                value: 'popular',
+                label: 'Order by',
+                options: [
+                    { label: 'Popular', value: 'popular' },
+                    { label: 'New', value: 'new' },
+                    { label: 'Updates', value: 'updates' },
+                ],
+                type: filterInputs_1.FilterTypes.Picker,
+            },
+            genre: {
+                value: 'all',
+                label: 'Genre',
+                options: [
+                    { label: 'All', value: 'all' },
+                    { label: 'Action', value: 'action' },
+                    { label: 'Adult', value: 'adult' },
+                    { label: 'Adventure', value: 'adventure' },
+                    { label: 'Anime', value: 'anime' },
+                    { label: 'Arts', value: 'arts' },
+                    { label: 'Comedy', value: 'comedy' },
+                    { label: 'Drama', value: 'drama' },
+                    { label: 'Eastern', value: 'eastern' },
+                    { label: 'Ecchi', value: 'ecchi' },
+                    { label: 'Fan-fiction', value: 'fan-fiction' },
+                    { label: 'Fantasy', value: 'fantasy' },
+                    { label: 'Game', value: 'game' },
+                    { label: 'Gender Bender', value: 'gender-bender' },
+                    { label: 'Harem', value: 'harem' },
+                    { label: 'Historical', value: 'historical' },
+                    { label: 'Horror', value: 'horror' },
+                    { label: 'Isekai', value: 'isekai' },
+                    { label: 'Josei', value: 'josei' },
+                    { label: 'LGBT+', value: 'lgbt+' },
+                    { label: 'Magic', value: 'magic' },
+                    { label: 'Magical Realism', value: 'magical-realism' },
+                    { label: 'Manhua', value: 'manhua' },
+                    { label: 'Martial Arts', value: 'martial-arts' },
+                    { label: 'Mature', value: 'mature' },
+                    { label: 'Mecha', value: 'mecha' },
+                    { label: 'Military', value: 'military' },
+                    { label: 'Modern Life', value: 'modern-life' },
+                    { label: 'Movies', value: 'movies' },
+                    { label: 'Mystery', value: 'mystery' },
+                    { label: 'Other', value: 'other' },
+                    { label: 'Psychological', value: 'psychological' },
+                    { label: 'Realistic Fiction', value: 'realistic-fiction' },
+                    { label: 'Reincarnation', value: 'reincarnation' },
+                    { label: 'Romance', value: 'romance' },
+                    { label: 'School Life', value: 'school-life' },
+                    { label: 'Sci-fi', value: 'sci-fi' },
+                    { label: 'Seinen', value: 'seinen' },
+                    { label: 'Shoujo', value: 'shoujo' },
+                    { label: 'Shoujo Ai', value: 'shoujo-ai' },
+                    { label: 'Shounen', value: 'shounen' },
+                    { label: 'Shounen Ai', value: 'shounen-ai' },
+                    { label: 'Slice of Life', value: 'slice-of-life' },
+                    { label: 'Smut', value: 'smut' },
+                    { label: 'Sports', value: 'sports' },
+                    { label: 'Supernatural', value: 'supernatural' },
+                    { label: 'System', value: 'system' },
+                    { label: 'Tragedy', value: 'tragedy' },
+                    { label: 'Urban', value: 'urban' },
+                    { label: 'Urban Life', value: 'urban-life' },
+                    { label: 'Video Games', value: 'video-games' },
+                    { label: 'War', value: 'war' },
+                    { label: 'Wuxia', value: 'wuxia' },
+                    { label: 'Xianxia', value: 'xianxia' },
+                    { label: 'Xuanhuan', value: 'xuanhuan' },
+                    { label: 'Yaoi', value: 'yaoi' },
+                    { label: 'Yuri', value: 'yuri' },
+                ],
+                type: filterInputs_1.FilterTypes.Picker,
+            },
+        };
     }
-    LightNovelWorldPlugin.prototype.popularNovels = function (pageNo, options) {
-        return __awaiter(this, void 0, void 0, function () {
-            var page, order, url, html;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+    LightNovelWorldPlugin.prototype.popularNovels = function (pageNo_1, _a) {
+        return __awaiter(this, arguments, void 0, function (pageNo, _b) {
+            var page, genre, order, url, html;
+            var _c, _d;
+            var showLatestNovels = _b.showLatestNovels, filters = _b.filters;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
                     case 0:
                         page = Math.max(1, pageNo || 1);
-                        order = (options && options.showLatestNovels) ? 'updates' : 'popular';
-                        url = "".concat(this.site, "genre-all/?order=").concat(order, "&page=").concat(page);
+                        genre = ((_c = filters === null || filters === void 0 ? void 0 : filters.genre) === null || _c === void 0 ? void 0 : _c.value) || 'all';
+                        order = showLatestNovels
+                            ? 'updates'
+                            : ((_d = filters === null || filters === void 0 ? void 0 : filters.order) === null || _d === void 0 ? void 0 : _d.value) || 'popular';
+                        url = "".concat(this.site, "genre-").concat(genre, "/?order=").concat(order, "&page=").concat(page);
                         return [4 /*yield*/, (0, fetch_1.fetchText)(url)];
                     case 1:
-                        html = _a.sent();
+                        html = _e.sent();
                         return [2 /*return*/, this.parseNovelList(html)];
                 }
             });
         });
     };
-    /**
-     * Chapter list API returns:
-     * - title: full chapter name
-     * - display_name: UI-truncated name with trailing "..."
-     * Always prefer title (same idea as NovelFire's a[title]).
-     */
     LightNovelWorldPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
             var LIMIT, apiBase, firstRes, firstJson, total, allChapters, offsets, offset, remainingResults, rawChapters, _i, rawChapters_1, ch, num, name_1;
@@ -94,7 +170,7 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                         firstRes = _a.sent();
                         return [4 /*yield*/, firstRes.json()];
                     case 2:
-                        firstJson = _a.sent();
+                        firstJson = (_a.sent());
                         total = firstJson.total_chapters || firstJson.chapters.length;
                         allChapters = [];
                         offsets = [];
@@ -112,7 +188,7 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                                             res = _a.sent();
                                             return [4 /*yield*/, res.json()];
                                         case 2:
-                                            json = _a.sent();
+                                            json = (_a.sent());
                                             return [2 /*return*/, json.chapters || []];
                                         case 3:
                                             err_1 = _a.sent();
@@ -135,7 +211,6 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                                 chapterNumber: num,
                             });
                         }
-                        // Sort ascending by chapter number
                         allChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
                         return [2 /*return*/, allChapters];
                 }
@@ -158,13 +233,23 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                     case 1:
                         html = _a.sent();
                         $ = (0, cheerio_1.load)(html);
-                        title = $('.novel-title, h1.title, .novel-name, h1, .book-title').first().text().trim() || 'Untitled Novel';
+                        title = $('.novel-title, h1.title, .novel-name, h1, .book-title')
+                            .first()
+                            .text()
+                            .trim() || 'Untitled Novel';
                         imgEl = $('.cover img, .novel-cover img, .book-cover img, img.cover, .card-cover img, .novel-cover-container img').first();
-                        rawCover = imgEl.attr('src') || imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || '';
+                        rawCover = imgEl.attr('src') ||
+                            imgEl.attr('data-src') ||
+                            imgEl.attr('data-lazy-src') ||
+                            '';
                         cover = rawCover ? new URL(rawCover, this.site).href : '';
                         summaryEl = $('.summary-content, .novel-summary, .synopsis, .summary .content').first();
                         summaryEl.find('br').replaceWith('\n');
-                        paragraphs = summaryEl.find('p').map(function (_, el) { return $(el).text().trim(); }).get().filter(Boolean);
+                        paragraphs = summaryEl
+                            .find('p')
+                            .map(function (_, el) { return $(el).text().trim(); })
+                            .get()
+                            .filter(Boolean);
                         summary = '';
                         if (paragraphs.length > 0) {
                             for (_i = 0, paragraphs_1 = paragraphs; _i < paragraphs_1.length; _i++) {
@@ -180,8 +265,15 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                         else {
                             summary = summaryEl.text().trim();
                         }
-                        author = $('.author a, .novel-author a, .author-name, .novel-author').first().text().trim() || 'Unknown Author';
-                        rawStatus = $('.status-badge, .novel-status, .status-label, .status').first().text().trim().toLowerCase();
+                        author = $('.author a, .novel-author a, .author-name, .novel-author')
+                            .first()
+                            .text()
+                            .trim() || 'Unknown Author';
+                        rawStatus = $('.status-badge, .novel-status, .status-label, .status')
+                            .first()
+                            .text()
+                            .trim()
+                            .toLowerCase();
                         status = novelStatus_1.NovelStatus.Unknown;
                         if (rawStatus.includes('ongoing'))
                             status = novelStatus_1.NovelStatus.Ongoing;
@@ -243,7 +335,9 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                         if (!container.length) {
                             return [2 /*return*/, '<p>No content found.</p>'];
                         }
-                        container.find('script, style, ins, .ads, .ad-container, .ad-wrapper, .watermark, #ad-banner, iframe, .ad-box, .pub-ad, .chapter-ad-container').remove();
+                        container
+                            .find('script, style, ins, .ads, .ad-container, .ad-wrapper, .watermark, #ad-banner, iframe, .ad-box, .pub-ad, .chapter-ad-container')
+                            .remove();
                         container.find('*').each(function (_, el) {
                             var attribs = el.attribs || {};
                             for (var attr in attribs) {
@@ -276,11 +370,12 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                         res = _b.sent();
                         return [4 /*yield*/, res.json()];
                     case 3:
-                        json = _b.sent();
+                        json = (_b.sent());
                         if (!json || !Array.isArray(json.novels)) {
                             return [2 /*return*/, []];
                         }
-                        return [2 /*return*/, json.novels.map(function (item) {
+                        return [2 /*return*/, json.novels
+                                .map(function (item) {
                                 var rawCover = item.cover_path || '';
                                 var cover = rawCover ? new URL(rawCover, _this.site).href : '';
                                 var slug = item.slug || '';
@@ -290,7 +385,8 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                                     cover: cover,
                                     path: path,
                                 };
-                            }).filter(function (item) { return !!item.path && !!item.name; })];
+                            })
+                                .filter(function (item) { return !!item.path && !!item.name; })];
                     case 4:
                         _a = _b.sent();
                         return [2 /*return*/, []];
@@ -313,8 +409,9 @@ var LightNovelWorldPlugin = /** @class */ (function () {
             var rawPath = linkEl.attr('href') || item.find('a.card-link').attr('href') || '';
             if (!rawPath)
                 return;
-            // Prefer full name from attributes (NovelFire-style), then visible text
-            var titleEl = item.find('.card-title, .novel-title, .boost-shelf-title, .title, h3').first();
+            var titleEl = item
+                .find('.card-title, .novel-title, .boost-shelf-title, .title, h3')
+                .first();
             var name = ((_a = linkEl.attr('title')) === null || _a === void 0 ? void 0 : _a.trim()) ||
                 ((_b = item.find('a[title]').first().attr('title')) === null || _b === void 0 ? void 0 : _b.trim()) ||
                 ((_c = item.find('img[alt]').first().attr('alt')) === null || _c === void 0 ? void 0 : _c.trim()) ||
@@ -327,8 +424,9 @@ var LightNovelWorldPlugin = /** @class */ (function () {
                 item.find('[data-bg-image]').attr('data-bg-image') ||
                 '';
             if (name && rawPath) {
-                // Strip leading slash — site already ends with '/'
-                var cleanPath = rawPath.startsWith('http') ? new URL(rawPath).pathname : rawPath;
+                var cleanPath = rawPath.startsWith('http')
+                    ? new URL(rawPath).pathname
+                    : rawPath;
                 cleanPath = cleanPath.replace(/^\//, '');
                 if (!cleanPath.endsWith('/'))
                     cleanPath += '/';
