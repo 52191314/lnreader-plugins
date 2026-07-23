@@ -35,6 +35,15 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NovelPhoenixPlugin = void 0;
 var fetch_1 = require("@libs/fetch");
@@ -47,7 +56,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '1.0.0';
+        this.version = '1.0.1';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -268,7 +277,8 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanSlug, url, html, $, chapters;
+            var cleanSlug, baseUrl, firstHtml, $first, maxPage, firstChapters, pagesToFetch, p, remainingPages, allChapters;
+            var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -276,33 +286,53 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         if (cleanSlug.startsWith('novel/')) {
                             cleanSlug = cleanSlug.replace(/^novel\//, '');
                         }
-                        url = "".concat(this.site, "novel/").concat(cleanSlug, "/chapters");
-                        return [4 /*yield*/, (0, fetch_1.fetchText)(url)];
+                        baseUrl = "".concat(this.site, "novel/").concat(cleanSlug, "/chapters");
+                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=1"))];
                     case 1:
-                        html = _a.sent();
-                        $ = (0, cheerio_1.load)(html);
-                        chapters = [];
-                        $('a[href*="/chapter-"]').each(function (i, el) {
-                            var $el = $(el);
-                            var href = $el.attr('href') || '';
-                            if (!href)
-                                return;
-                            var cleanHref = href.replace(/^\//, '');
-                            var numMatch = cleanHref.match(/chapter-(\d+)/i);
-                            var chapterNumber = numMatch ? parseInt(numMatch[1], 10) : i + 1;
-                            var name = $el.find('.chapter-title, .title').text().trim() ||
-                                $el.text().trim();
-                            name = name.replace(/^\d+/, '').trim();
-                            if (!name)
-                                name = "Chapter ".concat(chapterNumber);
-                            chapters.push({
-                                name: name,
-                                path: cleanHref,
-                                chapterNumber: chapterNumber,
-                            });
+                        firstHtml = _a.sent();
+                        $first = (0, cheerio_1.load)(firstHtml);
+                        maxPage = 1;
+                        $first('.pagination a, ul.pagination li a, a[href*="page="]').each(function (_, el) {
+                            var href = $first(el).attr('href') || '';
+                            var m = href.match(/page=(\d+)/i);
+                            if (m) {
+                                var p = parseInt(m[1], 10);
+                                if (p > maxPage)
+                                    maxPage = p;
+                            }
                         });
-                        chapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
-                        return [2 /*return*/, chapters];
+                        firstChapters = this.parseChapterLinks($first);
+                        if (maxPage <= 1) {
+                            firstChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
+                            return [2 /*return*/, firstChapters];
+                        }
+                        pagesToFetch = [];
+                        for (p = 2; p <= maxPage; p++) {
+                            pagesToFetch.push(p);
+                        }
+                        return [4 /*yield*/, Promise.all(pagesToFetch.map(function (page) { return __awaiter(_this, void 0, void 0, function () {
+                                var html, $, _a;
+                                return __generator(this, function (_b) {
+                                    switch (_b.label) {
+                                        case 0:
+                                            _b.trys.push([0, 2, , 3]);
+                                            return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=").concat(page))];
+                                        case 1:
+                                            html = _b.sent();
+                                            $ = (0, cheerio_1.load)(html);
+                                            return [2 /*return*/, this.parseChapterLinks($)];
+                                        case 2:
+                                            _a = _b.sent();
+                                            return [2 /*return*/, []];
+                                        case 3: return [2 /*return*/];
+                                    }
+                                });
+                            }); }))];
+                    case 2:
+                        remainingPages = _a.sent();
+                        allChapters = __spreadArray(__spreadArray([], firstChapters, true), remainingPages.flat(), true);
+                        allChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
+                        return [2 /*return*/, allChapters];
                 }
             });
         });
@@ -330,6 +360,29 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                 }
             });
         });
+    };
+    NovelPhoenixPlugin.prototype.parseChapterLinks = function ($) {
+        var chapters = [];
+        $('a[href*="/chapter-"]').each(function (i, el) {
+            var $el = $(el);
+            var href = $el.attr('href') || '';
+            if (!href)
+                return;
+            var cleanHref = href.replace(/^\//, '');
+            var numMatch = cleanHref.match(/chapter-(\d+)/i);
+            var chapterNumber = numMatch ? parseInt(numMatch[1], 10) : i + 1;
+            var name = $el.find('.chapter-title, .title').text().trim() ||
+                $el.text().trim();
+            name = name.replace(/^\d+/, '').trim();
+            if (!name)
+                name = "Chapter ".concat(chapterNumber);
+            chapters.push({
+                name: name,
+                path: cleanHref,
+                chapterNumber: chapterNumber,
+            });
+        });
+        return chapters;
     };
     NovelPhoenixPlugin.prototype.parseNovelList = function (html) {
         var _this = this;
