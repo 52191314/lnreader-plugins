@@ -14,7 +14,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.1.0';
+  version = '2.1.1';
 
   private checkCloudflare(html: string) {
     if (
