@@ -12,7 +12,8 @@ const HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9',
   'Sec-Fetch-Dest': 'document',
   'Sec-Fetch-Mode': 'navigate',
-  'Sec-Fetch-Site': 'same-origin',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
   'Upgrade-Insecure-Requests': '1',
 };
 
@@ -21,7 +22,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.2';
+  version = '2.0.3';
 
   private checkCloudflare(html: string) {
     if (
@@ -212,16 +213,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     });
     this.checkCloudflare(firstHtml);
 
-    let $first = loadCheerio(firstHtml);
-    let firstChapters = this.parseChapterLinks($first);
-
-    if (firstChapters.length === 0) {
-      const mainHtml = await fetchText(`${this.site}novel/${cleanSlug}`, {
-        headers: HEADERS,
-      });
-      $first = loadCheerio(mainHtml);
-      firstChapters = this.parseChapterLinks($first);
-    }
+    const $first = loadCheerio(firstHtml);
+    const firstChapters = this.parseChapterLinks($first);
 
     let maxPage = 1;
     $first('.pagination a, ul.pagination li a, a[href*="page="]').each(
@@ -312,13 +305,14 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   private parseChapterLinks($: returnType<typeof loadCheerio>): Plugin.ChapterItem[] {
     const chapters: Plugin.ChapterItem[] = [];
 
-    const links = $('.chapter-list a[href*="/chapter-"], .list-chapter a[href*="/chapter-"]');
-    const targetLinks = links.length > 0 ? links : $('a[href*="/chapter-"]');
+    const links = $('.chapter-list a[href*="/chapter-"]');
 
-    targetLinks.each((i, el) => {
+    links.each((i, el) => {
       const $el = $(el);
       const href = $el.attr('href') || '';
       if (!href) return;
+
+      if (href.includes('chapters?page=')) return;
 
       const cleanHref = href.replace(/^\//, '');
       const numMatch = cleanHref.match(/chapter-(\d+)/i);
@@ -331,6 +325,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       name = name.replace(/\s*\d+\s*(years?|months?|days?|hours?|mins?|minutes?)\s*ago\s*$/i, '').trim();
       name = name.replace(/^\d+/, '').trim();
       if (!name) name = `Chapter ${chapterNumber}`;
+
+      if (name.toLowerCase().includes('read now')) return;
 
       chapters.push({
         name,

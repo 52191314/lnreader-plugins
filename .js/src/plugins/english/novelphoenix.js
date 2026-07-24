@@ -67,7 +67,8 @@ var HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
     'Upgrade-Insecure-Requests': '1',
 };
 var NovelPhoenixPlugin = /** @class */ (function () {
@@ -76,7 +77,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '2.0.2';
+        this.version = '2.0.3';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -308,7 +309,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, mainHtml, maxPage, pagesToFetch, p, BATCH_SIZE, remainingChapters, i, batch, batchResults, rawAll;
+            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, maxPage, pagesToFetch, p, BATCH_SIZE, remainingChapters, i, batch, batchResults, rawAll;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -330,16 +331,6 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         this.checkCloudflare(firstHtml);
                         $first = (0, cheerio_1.load)(firstHtml);
                         firstChapters = this.parseChapterLinks($first);
-                        if (!(firstChapters.length === 0)) return [3 /*break*/, 3];
-                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(this.site, "novel/").concat(cleanSlug), {
-                                headers: HEADERS,
-                            })];
-                    case 2:
-                        mainHtml = _a.sent();
-                        $first = (0, cheerio_1.load)(mainHtml);
-                        firstChapters = this.parseChapterLinks($first);
-                        _a.label = 3;
-                    case 3:
                         maxPage = 1;
                         $first('.pagination a, ul.pagination li a, a[href*="page="]').each(function (_, el) {
                             var href = $first(el).attr('href') || '';
@@ -360,23 +351,23 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         BATCH_SIZE = 5;
                         remainingChapters = [];
                         i = 0;
-                        _a.label = 4;
-                    case 4:
-                        if (!(i < pagesToFetch.length)) return [3 /*break*/, 8];
+                        _a.label = 2;
+                    case 2:
+                        if (!(i < pagesToFetch.length)) return [3 /*break*/, 6];
                         batch = pagesToFetch.slice(i, i + BATCH_SIZE);
                         return [4 /*yield*/, Promise.all(batch.map(function (page) { return _this.fetchPageWithRetry(baseUrl, page); }))];
-                    case 5:
+                    case 3:
                         batchResults = _a.sent();
                         remainingChapters.push.apply(remainingChapters, batchResults.flat());
-                        if (!(i + BATCH_SIZE < pagesToFetch.length)) return [3 /*break*/, 7];
+                        if (!(i + BATCH_SIZE < pagesToFetch.length)) return [3 /*break*/, 5];
                         return [4 /*yield*/, new Promise(function (res) { return setTimeout(res, 50); })];
-                    case 6:
+                    case 4:
                         _a.sent();
-                        _a.label = 7;
-                    case 7:
+                        _a.label = 5;
+                    case 5:
                         i += BATCH_SIZE;
-                        return [3 /*break*/, 4];
-                    case 8:
+                        return [3 /*break*/, 2];
+                    case 6:
                         rawAll = __spreadArray(__spreadArray([], firstChapters, true), remainingChapters, true);
                         return [2 /*return*/, this.deduplicateChapters(rawAll)];
                 }
@@ -465,12 +456,13 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseChapterLinks = function ($) {
         var chapters = [];
-        var links = $('.chapter-list a[href*="/chapter-"], .list-chapter a[href*="/chapter-"]');
-        var targetLinks = links.length > 0 ? links : $('a[href*="/chapter-"]');
-        targetLinks.each(function (i, el) {
+        var links = $('.chapter-list a[href*="/chapter-"]');
+        links.each(function (i, el) {
             var $el = $(el);
             var href = $el.attr('href') || '';
             if (!href)
+                return;
+            if (href.includes('chapters?page='))
                 return;
             var cleanHref = href.replace(/^\//, '');
             var numMatch = cleanHref.match(/chapter-(\d+)/i);
@@ -481,6 +473,8 @@ var NovelPhoenixPlugin = /** @class */ (function () {
             name = name.replace(/^\d+/, '').trim();
             if (!name)
                 name = "Chapter ".concat(chapterNumber);
+            if (name.toLowerCase().includes('read now'))
+                return;
             chapters.push({
                 name: name,
                 path: cleanHref,
