@@ -22,7 +22,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.6';
+  version = '2.0.7';
 
   private checkCloudflare(html: string) {
     if (
@@ -183,6 +183,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         .trim();
     }
 
+    const chapters = await this.fetchAllChapters(novelPath);
+
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
       name: title,
@@ -191,6 +193,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status,
       genres: genres.join(', '),
       summary,
+      chapters,
     };
 
     return novel;
