@@ -2,316 +2,230 @@ import { fetchText, fetchApi } from '@libs/fetch';
 import { load as loadCheerio } from 'cheerio';
 import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
-import { Filters, FilterTypes } from '@libs/filterInputs';
 
 export class LightNovelWorldPlugin implements Plugin.PluginBase {
-  id = 'lightnovelworld';
-  name = 'LightNovelWorld';
-  icon = 'src/en/lightnovelworld/icon.png';
-  site = 'https://lightnovelworld.org/';
-  version = '1.0.0';
+    id = "lightnovelworld";
+    name = "LightNovelWorld";
+    icon = "src/en/lightnovelworld/icon.png";
+    site = "https://lightnovelworld.org/";
+    version = "1.1.4";
 
-  async popularNovels(
-    pageNo: number,
-    {
-      showLatestNovels,
-      filters,
-    }: Plugin.PopularNovelsOptions<typeof this.filters>,
-  ): Promise<Plugin.NovelItem[]> {
-    const genre = filters.genre.value;
-    const status = filters.status.value;
-    const order = showLatestNovels ? 'updates' : filters.order.value;
-    const url = `${this.site}genre-${genre}/?status=${status}&order=${order}&page=${pageNo}`;
-    const html = await fetchText(url);
-    return this.parseNovelList(html);
-  }
-
-  async searchNovels(
-    searchTerm: string,
-    pageNo: number,
-  ): Promise<Plugin.NovelItem[]> {
-    if (pageNo > 1) return [];
-
-    const url = `${this.site}search?keyword=${encodeURIComponent(searchTerm)}`;
-    const html = await fetchText(url);
-    return this.parseNovelList(html);
-  }
-
-  async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
-    const fullUrl = novelPath.startsWith('http')
-      ? novelPath
-      : `${this.site}${novelPath}`;
-
-    const html = await fetchText(fullUrl);
-    const $ = loadCheerio(html);
-
-    const title =
-      $('.novel-title, h1.title, .novel-name, h1, .book-title')
-        .first()
-        .text()
-        .trim() || 'Untitled';
-
-    let cover =
-      $('meta[property="og:image"]').attr('content') ||
-      $('.novel-cover img, .fixed-img img, .novel-info img')
-        .first()
-        .attr('src') ||
-      $('.novel-cover img, .fixed-img img, .novel-info img')
-        .first()
-        .attr('data-src') ||
-      '';
-
-    if (cover && !cover.startsWith('http')) {
-      cover = `${this.site}${cover.replace(/^\//, '')}`;
+    async popularNovels(
+        pageNo: number,
+        options?: Plugin.PopularNovelsOptions
+    ): Promise<Plugin.NovelItem[]> {
+        const order = (options && options.showLatestNovels) ? 'updates' : 'popular';
+        const url = `${this.site}genre-all/?order=${order}&page=${pageNo}`;
+        const html = await fetchText(url);
+        return this.parseNovelList(html);
     }
 
-    let author =
-      $('.author-name, .author a, .novel-info .author, a[href*="/author/"]')
-        .first()
-        .text()
-        .trim() || '';
+    async fetchAllChapters(slug: string): Promise<Plugin.ChapterItem[]> {
+        const LIMIT = 500;
+        const apiBase = `${this.site}api/novel/${slug}/chapters/?limit=${LIMIT}`;
 
-    author = author.replace(/^Author:\s*/i, '').trim();
+        const firstRes = await fetchApi(`${apiBase}&offset=0`);
+        const firstJson = await firstRes.json() as {
+            chapters: Array<{ number: number; title: string; display_name?: string }>;
+            total_chapters: number;
+            has_more: boolean;
+        };
 
-    const genres: string[] = [];
-    $('a[href*="/genre/"], .genre-item, .categories a').each((_, el) => {
-      const g = $(el).text().trim();
-      if (g && !genres.includes(g) && g.toLowerCase() !== 'all') {
-        genres.push(g);
-      }
-    });
+        const total = firstJson.total_chapters || firstJson.chapters.length;
+        const allChapters: Plugin.ChapterItem[] = [];
 
-    const rawStatus = $(
-      '.status-badge, .novel-status, .status-label, .status, .badge, .tag',
-    )
-      .text()
-      .toLowerCase();
-
-    let status = NovelStatus.Unknown;
-    if (rawStatus.includes('ongoing')) status = NovelStatus.Ongoing;
-    else if (rawStatus.includes('completed') || rawStatus.includes('complete'))
-      status = NovelStatus.Completed;
-    else if (rawStatus.includes('hiatus') || rawStatus.includes('paused'))
-      status = NovelStatus.OnHiatus;
-
-    const summaryContainer = $('.summary-content').first();
-    const summaryParagraphs: string[] = [];
-
-    summaryContainer.find('p').each((_, el) => {
-      const pText = $(el).text().trim();
-      if (!pText) return;
-
-      if (pText.startsWith('–') || pText.startsWith('-')) {
-        if (summaryParagraphs.length > 0) {
-          summaryParagraphs[summaryParagraphs.length - 1] += ` ${pText}`;
-        } else {
-          summaryParagraphs.push(pText);
+        const offsets: number[] = [];
+        for (let offset = LIMIT; offset < total; offset += LIMIT) {
+            offsets.push(offset);
         }
-      } else {
-        summaryParagraphs.push(pText);
-      }
-    });
 
-    let summary = '';
-    if (summaryParagraphs.length > 0) {
-      summary = summaryParagraphs.join('\n\n');
-    } else {
-      summary = summaryContainer.text().trim();
+        const remainingResults = await Promise.all(
+            offsets.map(async (offset) => {
+                try {
+                    const res = await fetchApi(`${apiBase}&offset=${offset}`);
+                    const json = await res.json() as {
+                        chapters: Array<{ number: number; title: string; display_name?: string }>;
+                    };
+                    return json.chapters || [];
+                } catch {
+                    return [];
+                }
+            })
+        );
+
+        const rawChapters = [
+            ...firstJson.chapters,
+            ...remainingResults.flat(),
+        ];
+
+        for (const ch of rawChapters) {
+            const num = ch.number;
+            const name = (ch.title || `Chapter ${num}`).trim();
+            allChapters.push({
+                name,
+                path: `novel/${slug}/chapter/${num}/`,
+                chapterNumber: num,
+            });
+        }
+
+        allChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
+        return allChapters;
     }
 
-    const novel: Plugin.SourceNovel = {
-      path: novelPath,
-      name: title,
-      cover,
-      author,
-      status,
-      genres: genres.join(', '),
-      summary,
-    };
+    async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
+        const html = await fetchText(`${this.site}${novelPath}`);
+        const $ = loadCheerio(html);
 
-    return novel;
-  }
+        const title = $('.novel-title').text().trim() || 'Untitled Novel';
 
-  async fetchAllChapters(slug: string): Promise<Plugin.ChapterItem[]> {
-    let cleanSlug = slug.replace(/^\//, '').replace(/\/$/, '');
-    if (cleanSlug.startsWith('novel/')) {
-      cleanSlug = cleanSlug.replace(/^novel\//, '');
+        const rawCover = $('.novel-cover img').attr('src') || $('.novel-cover img').attr('data-src') || '';
+        const cover = rawCover ? `${this.site}${rawCover.replace(/^\//, '')}` : '';
+
+        const summary = $('.summary-content').text().trim() || '';
+
+        const author = $('.author-link').text().trim() || 'Unknown Author';
+
+        const rawStatus = $('.status-badge').text().trim().toLowerCase();
+        const statusMap: Record<string, NovelStatus> = {
+            'ongoing': NovelStatus.Ongoing,
+            'completed': NovelStatus.Completed,
+            'complete': NovelStatus.Completed,
+            'hiatus': NovelStatus.OnHiatus,
+            'paused': NovelStatus.OnHiatus,
+        };
+        const status = statusMap[rawStatus] || NovelStatus.Unknown;
+
+        const genres: string[] = [];
+        $('.genre-tag').each((_, el) => {
+            const g = $(el).text().trim();
+            if (g && !genres.includes(g)) {
+                genres.push(g);
+            }
+        });
+
+        const slug = novelPath.replace(/^novel\//, '').replace(/\/$/, '');
+        let chapters: Plugin.ChapterItem[] = [];
+
+        if (slug) {
+            try {
+                chapters = await this.fetchAllChapters(slug);
+            } catch {
+                chapters = [];
+            }
+        }
+
+        return {
+            path: novelPath,
+            name: title,
+            cover,
+            summary,
+            author,
+            status,
+            genres: genres.join(', '),
+            chapters,
+        };
     }
 
-    const LIMIT = 500;
-    const apiBase = `${this.site}api/novel/${cleanSlug}/chapters/?limit=${LIMIT}`;
+    async parseChapter(chapterPath: string): Promise<string> {
+        const html = await fetchText(`${this.site}${chapterPath}`);
+        const $ = loadCheerio(html);
 
-    const firstRes = await fetchApi(`${apiBase}&offset=0`);
-    const firstJson = (await firstRes.json()) as {
-      chapters: Array<{ number: number; title: string; display_name?: string }>;
-      total_chapters: number;
-    };
+        const container = $('#chapterText, .chapter-text, #chapter-container, .chapter-content, #chapter-body, .chr-c, #chr-content').first();
+        if (!container.length) {
+            return '<p>No content found.</p>';
+        }
 
-    const total = firstJson.total_chapters || firstJson.chapters.length;
-    const allChapters: Plugin.ChapterItem[] = [];
+        container.find('script, style, ins, .ads, .ad-container, .ad-wrapper, .watermark, #ad-banner, iframe, .ad-box, .pub-ad, .chapter-ad-container').remove();
+        container.find('*').each((_, el) => {
+            const attribs = el.attribs || {};
+            for (const attr in attribs) {
+                if (attr.startsWith('on') || attr === 'style') {
+                    $(el).removeAttr(attr);
+                }
+            }
+        });
 
-    const offsets: number[] = [];
-    for (let offset = LIMIT; offset < total; offset += LIMIT) {
-      offsets.push(offset);
+        const content = container.html()?.trim() || '<p>No content found.</p>';
+        return content.replace(/[\u200B-\u200D\uFEFF]/g, '');
     }
 
-    const remainingResults = await Promise.all(
-      offsets.map(async offset => {
+    async searchNovels(
+        searchTerm: string,
+        pageNo: number
+    ): Promise<Plugin.NovelItem[]> {
+        if (!searchTerm || !searchTerm.trim()) return [];
+        const url = `${this.site}api/search/?q=${encodeURIComponent(searchTerm.trim())}&search_type=title`;
         try {
-          const res = await fetchApi(`${apiBase}&offset=${offset}`);
-          const json = (await res.json()) as {
-            chapters: Array<{
-              number: number;
-              title: string;
-              display_name?: string;
-            }>;
-          };
-          return json.chapters || [];
+            const res = await fetchApi(url);
+            const json = await res.json() as { novels?: Array<any> };
+            if (!json || !Array.isArray(json.novels)) {
+                return [];
+            }
+            return json.novels.map((item: any) => {
+                const rawCover = item.cover_path || '';
+                const cover = rawCover ? `${this.site}${rawCover.replace(/^\//, '')}` : '';
+                
+                const slug = item.slug || '';
+                const path = slug ? `novel/${slug}/` : '';
+
+                return {
+                    name: item.title || 'Untitled',
+                    cover,
+                    path,
+                };
+            }).filter((item: Plugin.NovelItem) => !!item.path && !!item.name);
         } catch {
-          return [];
+            return [];
         }
-      }),
-    );
-
-    const rawChapters = [...firstJson.chapters, ...remainingResults.flat()];
-
-    for (const ch of rawChapters) {
-      const num = ch.number;
-      const name = (ch.title || `Chapter ${num}`).trim();
-      allChapters.push({
-        name,
-        path: `novel/${cleanSlug}/chapter/${num}/`,
-        chapterNumber: num,
-      });
     }
 
-    allChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
-    return allChapters;
-  }
+    parseNovelList(html: string): Plugin.NovelItem[] {
+        const $ = loadCheerio(html);
+        const novels: Plugin.NovelItem[] = [];
+        const seen = new Set<string>();
 
-  async parseChapter(chapterPath: string): Promise<string> {
-    const fullUrl = chapterPath.startsWith('http')
-      ? chapterPath
-      : `${this.site}${chapterPath}`;
+        $('.ranking-card, .recommendation-card, .boost-shelf-card, .novel-item, .novel-card').each((_, el) => {
+            const item = $(el);
+            const linkEl = item.is('a[href*="/novel/"]')
+                ? item
+                : item.find("a[href*='/novel/']").first();
+            let rawPath = linkEl.attr('href') || item.find('a.card-link').attr('href') || '';
 
-    const html = await fetchText(fullUrl);
-    const $ = loadCheerio(html);
+            if (!rawPath) return;
 
-    const contentContainer = $(
-      '#chapter-container, .chapter-content, .content, #content, .chapter-body',
-    ).first();
+            const titleEl = item.find('.card-title, .novel-title, .boost-shelf-title, .title, h3').first();
+            const name =
+                linkEl.attr('title')?.trim() ||
+                item.find('a[title]').first().attr('title')?.trim() ||
+                item.find('img[alt]').first().attr('alt')?.trim() ||
+                titleEl.text().trim() ||
+                '';
 
-    contentContainer
-      .find(
-        'script, style, ins, .ads, .ad-container, .adsbygoogle, .chapter-review, .restore-scroll',
-      )
-      .remove();
+            const imgEl = item.find('a.card-cover-link img').first();
+            const rawCover =
+                imgEl.attr('src') ||
+                imgEl.attr('data-src') ||
+                imgEl.attr('data-lazy-src') ||
+                '';
 
-    return contentContainer.html() || '';
-  }
+            if (name && rawPath) {
+                let cleanPath = rawPath.replace(/^\//, '');
+                if (!cleanPath.endsWith('/')) cleanPath += '/';
+                if (seen.has(cleanPath)) return;
+                seen.add(cleanPath);
 
-  private parseNovelList(html: string): Plugin.NovelItem[] {
-    const $ = loadCheerio(html);
-    const novels: Plugin.NovelItem[] = [];
+                const cover = rawCover ? `${this.site}${rawCover.replace(/^\//, '')}` : '';
 
-    $('.novel-item, .book-item, .novel-list .item').each((_, el) => {
-      const $el = $(el);
-      const $a = $el.find('a').first();
-      const href = $a.attr('href');
-      const title =
-        $el.find('.novel-title, .title, h3, h4').first().text().trim() ||
-        $a.attr('title') ||
-        '';
+                novels.push({
+                    name,
+                    cover,
+                    path: cleanPath,
+                });
+            }
+        });
 
-      let cover =
-        $el.find('img').first().attr('data-src') ||
-        $el.find('img').first().attr('src') ||
-        '';
-
-      if (cover && !cover.startsWith('http')) {
-        cover = `${this.site}${cover.replace(/^\//, '')}`;
-      }
-
-      if (title && href) {
-        const path = href.replace(/^\//, '');
-        novels.push({ name: title, path, cover });
-      }
-    });
-
-    return novels;
-  }
-
-  filters = {
-    order: {
-      value: 'rank',
-      label: 'Order by',
-      options: [
-        { label: 'Rank', value: 'rank' },
-        { label: 'Reviews', value: 'reviews' },
-        { label: 'Comments', value: 'comments' },
-        { label: 'Collections', value: 'collections' },
-        { label: 'Popular', value: 'popular' },
-        { label: 'New', value: 'new' },
-        { label: 'Updates', value: 'updates' },
-      ],
-      type: FilterTypes.Picker,
-    },
-    status: {
-      value: 'all',
-      label: 'Status',
-      options: [
-        { label: 'All', value: 'all' },
-        { label: 'Ongoing', value: 'ongoing' },
-        { label: 'Completed', value: 'completed' },
-      ],
-      type: FilterTypes.Picker,
-    },
-    genre: {
-      value: 'all',
-      label: 'Genre',
-      options: [
-        { label: 'All', value: 'all' },
-        { label: 'Action', value: 'action' },
-        { label: 'Adult', value: 'adult' },
-        { label: 'Adventure', value: 'adventure' },
-        { label: 'Anime', value: 'anime' },
-        { label: 'Arts', value: 'arts' },
-        { label: 'Comedy', value: 'comedy' },
-        { label: 'Drama', value: 'drama' },
-        { label: 'Eastern', value: 'eastern' },
-        { label: 'Ecchi', value: 'ecchi' },
-        { label: 'Fanfiction', value: 'fanfiction' },
-        { label: 'Fantasy', value: 'fantasy' },
-        { label: 'Harem', value: 'harem' },
-        { label: 'Historical', value: 'historical' },
-        { label: 'Horror', value: 'horror' },
-        { label: 'Josei', value: 'josei' },
-        { label: 'Magic', value: 'magic' },
-        { label: 'Martial Arts', value: 'martial-arts' },
-        { label: 'Mecha', value: 'mecha' },
-        { label: 'Mystery', value: 'mystery' },
-        { label: 'Psychological', value: 'psychological' },
-        { label: 'Romance', value: 'romance' },
-        { label: 'School Life', value: 'school-life' },
-        { label: 'Sci-fi', value: 'sci-fi' },
-        { label: 'Seinen', value: 'seinen' },
-        { label: 'Shoujo', value: 'shoujo' },
-        { label: 'Shoujo Ai', value: 'shoujo-ai' },
-        { label: 'Shounen', value: 'shounen' },
-        { label: 'Shounen Ai', value: 'shounen-ai' },
-        { label: 'Slice of Life', value: 'slice-of-life' },
-        { label: 'Smut', value: 'smut' },
-        { label: 'Sports', value: 'sports' },
-        { label: 'Supernatural', value: 'supernatural' },
-        { label: 'Tragedy', value: 'tragedy' },
-        { label: 'Wuxia', value: 'wuxia' },
-        { label: 'Xianxia', value: 'xianxia' },
-        { label: 'Xuanhuan', value: 'xuanhuan' },
-        { label: 'Yaoi', value: 'yaoi' },
-      ],
-      type: FilterTypes.Picker,
-    },
-  };
+        return novels;
+    }
 }
 
 export default new LightNovelWorldPlugin();
