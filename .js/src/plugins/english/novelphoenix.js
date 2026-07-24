@@ -57,7 +57,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '1.0.6';
+        this.version = '2.0.0';
         this.filters = {
             order: {
                 value: 'sort-popular',

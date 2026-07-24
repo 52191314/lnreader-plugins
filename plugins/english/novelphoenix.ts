@@ -12,7 +12,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '1.0.6';
+  version = '2.0.0';
 
   async popularNovels(
     pageNo: number,
