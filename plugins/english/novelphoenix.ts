@@ -22,17 +22,15 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.5';
+  version = '2.0.6';
 
   private checkCloudflare(html: string) {
     if (
-      html.includes('Cloudflare') ||
-      html.includes('Just a moment...') ||
-      html.includes('Enable JavaScript and cookies to continue') ||
-      html.includes('cf-challenge') ||
-      html.includes('checking your browser') ||
-      html.includes('attention required') ||
-      html.includes('cdn-cgi/challenge')
+      html.includes('<title>Just a moment...</title>') ||
+      html.includes('<title>Attention Required! | Cloudflare</title>') ||
+      html.includes('id="challenge-running"') ||
+      html.includes('id="challenge-form"') ||
+      html.includes('Enable JavaScript and cookies to continue')
     ) {
       throw new Error(
         'Cloudflare protection active. Please open in Webview to bypass.',
@@ -185,8 +183,6 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         .trim();
     }
 
-    const chapters = await this.fetchAllChapters(novelPath);
-
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
       name: title,
@@ -195,7 +191,6 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status,
       genres: genres.join(', '),
       summary,
-      chapters,
     };
 
     return novel;
@@ -268,7 +263,11 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         const html = await fetchText(`${baseUrl}?page=${page}`, {
           headers: HEADERS,
         });
-        if (html && html.length > 500 && !html.includes('Cloudflare')) {
+        if (
+          html &&
+          html.length > 500 &&
+          !html.includes('<title>Just a moment...</title>')
+        ) {
           const $ = loadCheerio(html);
           const chs = this.parseChapterLinks($);
           if (chs.length > 0) return chs;
