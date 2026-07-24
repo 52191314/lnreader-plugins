@@ -50,13 +50,14 @@ var fetch_1 = require("@libs/fetch");
 var cheerio_1 = require("cheerio");
 var novelStatus_1 = require("@libs/novelStatus");
 var filterInputs_1 = require("@libs/filterInputs");
+var USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 var NovelPhoenixPlugin = /** @class */ (function () {
     function NovelPhoenixPlugin() {
         this.id = 'novelphoenix';
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '1.0.2';
+        this.version = '1.0.3';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -140,7 +141,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             ? 'sort-new'
                             : ((_e = filters === null || filters === void 0 ? void 0 : filters.order) === null || _e === void 0 ? void 0 : _e.value) || 'sort-popular';
                         url = "".concat(this.site, "genre-").concat(genre, "/").concat(order, "/status-").concat(status, "/all-novel?page=").concat(page);
-                        return [4 /*yield*/, (0, fetch_1.fetchText)(url)];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)(url, { headers: { 'User-Agent': USER_AGENT } })];
                     case 1:
                         html = _f.sent();
                         return [2 /*return*/, this.parseNovelList(html)];
@@ -159,6 +160,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         url = "".concat(this.site, "ajax/searchLive?keyword=").concat(encodeURIComponent(searchTerm));
                         return [4 /*yield*/, (0, fetch_1.fetchApi)(url, {
                                 headers: {
+                                    'User-Agent': USER_AGENT,
                                     'X-Requested-With': 'XMLHttpRequest',
                                 },
                             })];
@@ -203,7 +205,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         fullUrl = cleanPath.startsWith('http')
                             ? cleanPath
                             : "".concat(this.site).concat(cleanPath);
-                        return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl)];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, { headers: { 'User-Agent': USER_AGENT } })];
                     case 1:
                         html = _a.sent();
                         $ = (0, cheerio_1.load)(html);
@@ -277,20 +279,37 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanSlug, baseUrl, firstHtml, $first, maxPage, firstChapters, pagesToFetch, p, remainingPages, allChapters;
+            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, mainHtml, maxPage, pagesToFetch, p, remainingPages, allChapters;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         cleanSlug = slug.replace(/^\//, '').replace(/\/$/, '');
+                        if (cleanSlug.startsWith('http')) {
+                            cleanSlug = cleanSlug.replace(/^https?:\/\/[^\/]+\//, '');
+                        }
+                        cleanSlug = cleanSlug.replace(/^\//, '').replace(/\/$/, '');
                         if (cleanSlug.startsWith('novel/')) {
                             cleanSlug = cleanSlug.replace(/^novel\//, '');
                         }
                         baseUrl = "".concat(this.site, "novel/").concat(cleanSlug, "/chapters");
-                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=1"))];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=1"), {
+                                headers: { 'User-Agent': USER_AGENT },
+                            })];
                     case 1:
                         firstHtml = _a.sent();
                         $first = (0, cheerio_1.load)(firstHtml);
+                        firstChapters = this.parseChapterLinks($first);
+                        if (!(firstChapters.length === 0)) return [3 /*break*/, 3];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(this.site, "novel/").concat(cleanSlug), {
+                                headers: { 'User-Agent': USER_AGENT },
+                            })];
+                    case 2:
+                        mainHtml = _a.sent();
+                        $first = (0, cheerio_1.load)(mainHtml);
+                        firstChapters = this.parseChapterLinks($first);
+                        _a.label = 3;
+                    case 3:
                         maxPage = 1;
                         $first('.pagination a, ul.pagination li a, a[href*="page="]').each(function (_, el) {
                             var href = $first(el).attr('href') || '';
@@ -301,7 +320,6 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                     maxPage = p;
                             }
                         });
-                        firstChapters = this.parseChapterLinks($first);
                         if (maxPage <= 1) {
                             firstChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
                             return [2 /*return*/, firstChapters];
@@ -316,7 +334,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                     switch (_b.label) {
                                         case 0:
                                             _b.trys.push([0, 2, , 3]);
-                                            return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=").concat(page))];
+                                            return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=").concat(page), {
+                                                    headers: { 'User-Agent': USER_AGENT },
+                                                })];
                                         case 1:
                                             html = _b.sent();
                                             $ = (0, cheerio_1.load)(html);
@@ -328,7 +348,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                     }
                                 });
                             }); }))];
-                    case 2:
+                    case 4:
                         remainingPages = _a.sent();
                         allChapters = __spreadArray(__spreadArray([], firstChapters, true), remainingPages.flat(), true);
                         allChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
@@ -347,7 +367,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         fullUrl = cleanPath.startsWith('http')
                             ? cleanPath
                             : "".concat(this.site).concat(cleanPath);
-                        return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl)];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, {
+                                headers: { 'User-Agent': USER_AGENT },
+                            })];
                     case 1:
                         html = _a.sent();
                         $ = (0, cheerio_1.load)(html);

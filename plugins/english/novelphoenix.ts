@@ -4,12 +4,15 @@ import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import { Filters, FilterTypes } from '@libs/filterInputs';
 
+const USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 export class NovelPhoenixPlugin implements Plugin.PluginBase {
   id = 'novelphoenix';
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '1.0.2';
+  version = '1.0.3';
 
   async popularNovels(
     pageNo: number,
@@ -26,7 +29,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       : filters?.order?.value || 'sort-popular';
 
     const url = `${this.site}genre-${genre}/${order}/status-${status}/all-novel?page=${page}`;
-    const html = await fetchText(url);
+    const html = await fetchText(url, { headers: { 'User-Agent': USER_AGENT } });
     return this.parseNovelList(html);
   }
 
@@ -39,6 +42,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     const url = `${this.site}ajax/searchLive?keyword=${encodeURIComponent(searchTerm)}`;
     const res = await fetchApi(url, {
       headers: {
+        'User-Agent': USER_AGENT,
         'X-Requested-With': 'XMLHttpRequest',
       },
     });
@@ -80,7 +84,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       ? cleanPath
       : `${this.site}${cleanPath}`;
 
-    const html = await fetchText(fullUrl);
+    const html = await fetchText(fullUrl, { headers: { 'User-Agent': USER_AGENT } });
     const $ = loadCheerio(html);
 
     const title =
@@ -167,13 +171,29 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
 
   async fetchAllChapters(slug: string): Promise<Plugin.ChapterItem[]> {
     let cleanSlug = slug.replace(/^\//, '').replace(/\/$/, '');
+    if (cleanSlug.startsWith('http')) {
+      cleanSlug = cleanSlug.replace(/^https?:\/\/[^\/]+\//, '');
+    }
+    cleanSlug = cleanSlug.replace(/^\//, '').replace(/\/$/, '');
     if (cleanSlug.startsWith('novel/')) {
       cleanSlug = cleanSlug.replace(/^novel\//, '');
     }
 
     const baseUrl = `${this.site}novel/${cleanSlug}/chapters`;
-    const firstHtml = await fetchText(`${baseUrl}?page=1`);
-    const $first = loadCheerio(firstHtml);
+    const firstHtml = await fetchText(`${baseUrl}?page=1`, {
+      headers: { 'User-Agent': USER_AGENT },
+    });
+    let $first = loadCheerio(firstHtml);
+
+    let firstChapters = this.parseChapterLinks($first);
+
+    if (firstChapters.length === 0) {
+      const mainHtml = await fetchText(`${this.site}novel/${cleanSlug}`, {
+        headers: { 'User-Agent': USER_AGENT },
+      });
+      $first = loadCheerio(mainHtml);
+      firstChapters = this.parseChapterLinks($first);
+    }
 
     let maxPage = 1;
     $first('.pagination a, ul.pagination li a, a[href*="page="]').each(
@@ -186,8 +206,6 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         }
       },
     );
-
-    const firstChapters = this.parseChapterLinks($first);
 
     if (maxPage <= 1) {
       firstChapters.sort(
@@ -204,7 +222,9 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     const remainingPages = await Promise.all(
       pagesToFetch.map(async page => {
         try {
-          const html = await fetchText(`${baseUrl}?page=${page}`);
+          const html = await fetchText(`${baseUrl}?page=${page}`, {
+            headers: { 'User-Agent': USER_AGENT },
+          });
           const $ = loadCheerio(html);
           return this.parseChapterLinks($);
         } catch {
@@ -225,7 +245,9 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       ? cleanPath
       : `${this.site}${cleanPath}`;
 
-    const html = await fetchText(fullUrl);
+    const html = await fetchText(fullUrl, {
+      headers: { 'User-Agent': USER_AGENT },
+    });
     const $ = loadCheerio(html);
 
     const contentContainer = $(
