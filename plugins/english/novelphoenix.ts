@@ -22,7 +22,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.3';
+  version = '2.0.4';
 
   private checkCloudflare(html: string) {
     if (
@@ -162,7 +162,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status = NovelStatus.OnHiatus;
 
     const summaryParagraphs: string[] = [];
-    $('.summary-content p, .description p, .summary p').each((_, el) => {
+    $('.summary p, .summary-content p, .description p').each((_, el) => {
       const text = $(el).text().trim();
       if (text) {
         summaryParagraphs.push(text);
@@ -174,14 +174,12 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       summary = summaryParagraphs.join('\n\n');
     } else {
       summary = $(
-        '.summary-content, .description, .novel-detail, .summary',
+        '.summary, .summary-content, .description, .novel-detail',
       )
         .first()
         .text()
         .trim();
     }
-
-    const chapters = await this.fetchAllChapters(novelPath);
 
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
@@ -191,7 +189,6 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status,
       genres: genres.join(', '),
       summary,
-      chapters,
     };
 
     return novel;
