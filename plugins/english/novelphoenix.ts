@@ -12,7 +12,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '1.0.5';
+  version = '1.0.6';
 
   async popularNovels(
     pageNo: number,
@@ -156,6 +156,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         .trim();
     }
 
+    const chapters = await this.fetchAllChapters(novelPath);
+
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
       name: title,
@@ -164,6 +166,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status,
       genres: genres.join(', '),
       summary,
+      chapters,
     };
 
     return novel;

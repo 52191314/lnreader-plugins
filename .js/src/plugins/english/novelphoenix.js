@@ -57,7 +57,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '1.0.5';
+        this.version = '1.0.6';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -195,7 +195,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseNovel = function (novelPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, novel;
+            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, chapters, novel;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -263,6 +263,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                 .text()
                                 .trim();
                         }
+                        return [4 /*yield*/, this.fetchAllChapters(novelPath)];
+                    case 2:
+                        chapters = _a.sent();
                         novel = {
                             path: cleanPath,
                             name: title,
@@ -271,6 +274,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             status: status,
                             genres: genres.join(', '),
                             summary: summary,
+                            chapters: chapters,
                         };
                         return [2 /*return*/, novel];
                 }
