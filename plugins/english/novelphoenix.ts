@@ -12,7 +12,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '1.0.3';
+  version = '1.0.4';
 
   async popularNovels(
     pageNo: number,
@@ -208,10 +208,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     );
 
     if (maxPage <= 1) {
-      firstChapters.sort(
-        (a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0),
-      );
-      return firstChapters;
+      return this.deduplicateChapters(firstChapters);
     }
 
     const pagesToFetch: number[] = [];
@@ -233,10 +230,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       }),
     );
 
-    const allChapters = [...firstChapters, ...remainingPages.flat()];
-    allChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
-
-    return allChapters;
+    const rawAll = [...firstChapters, ...remainingPages.flat()];
+    return this.deduplicateChapters(rawAll);
   }
 
   async parseChapter(chapterPath: string): Promise<string> {
@@ -267,7 +262,10 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   private parseChapterLinks($: returnType<typeof loadCheerio>): Plugin.ChapterItem[] {
     const chapters: Plugin.ChapterItem[] = [];
 
-    $('a[href*="/chapter-"]').each((i, el) => {
+    const links = $('.chapter-list a[href*="/chapter-"], .list-chapter a[href*="/chapter-"]');
+    const targetLinks = links.length > 0 ? links : $('a[href*="/chapter-"]');
+
+    targetLinks.each((i, el) => {
       const $el = $(el);
       const href = $el.attr('href') || '';
       if (!href) return;
@@ -280,6 +278,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         $el.find('.chapter-title, .title').text().trim() ||
         $el.text().trim();
 
+      name = name.replace(/\s*\d+\s*(years?|months?|days?|hours?|mins?|minutes?)\s*ago\s*$/i, '').trim();
       name = name.replace(/^\d+/, '').trim();
       if (!name) name = `Chapter ${chapterNumber}`;
 
@@ -291,6 +290,21 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     });
 
     return chapters;
+  }
+
+  private deduplicateChapters(rawChapters: Plugin.ChapterItem[]): Plugin.ChapterItem[] {
+    rawChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
+    const seenPaths = new Set<string>();
+    const cleanChapters: Plugin.ChapterItem[] = [];
+
+    for (const ch of rawChapters) {
+      if (!seenPaths.has(ch.path)) {
+        seenPaths.add(ch.path);
+        cleanChapters.push(ch);
+      }
+    }
+
+    return cleanChapters;
   }
 
   private parseNovelList(html: string): Plugin.NovelItem[] {

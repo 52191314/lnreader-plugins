@@ -1031,7 +1031,7 @@
 		"name": "Novel Phoenix",
 		"site": "https://novelphoenix.com/",
 		"lang": "English",
-		"version": "1.0.3",
+		"version": "1.0.4",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/novelphoenix.js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/novelphoenix/icon.png"
 	},

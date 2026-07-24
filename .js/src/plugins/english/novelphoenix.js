@@ -57,7 +57,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '1.0.3';
+        this.version = '1.0.4';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -279,7 +279,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, mainHtml, maxPage, pagesToFetch, p, remainingPages, allChapters;
+            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, mainHtml, maxPage, pagesToFetch, p, remainingPages, rawAll;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -321,8 +321,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             }
                         });
                         if (maxPage <= 1) {
-                            firstChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
-                            return [2 /*return*/, firstChapters];
+                            return [2 /*return*/, this.deduplicateChapters(firstChapters)];
                         }
                         pagesToFetch = [];
                         for (p = 2; p <= maxPage; p++) {
@@ -350,9 +349,8 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             }); }))];
                     case 4:
                         remainingPages = _a.sent();
-                        allChapters = __spreadArray(__spreadArray([], firstChapters, true), remainingPages.flat(), true);
-                        allChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
-                        return [2 /*return*/, allChapters];
+                        rawAll = __spreadArray(__spreadArray([], firstChapters, true), remainingPages.flat(), true);
+                        return [2 /*return*/, this.deduplicateChapters(rawAll)];
                 }
             });
         });
@@ -385,7 +383,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseChapterLinks = function ($) {
         var chapters = [];
-        $('a[href*="/chapter-"]').each(function (i, el) {
+        var links = $('.chapter-list a[href*="/chapter-"], .list-chapter a[href*="/chapter-"]');
+        var targetLinks = links.length > 0 ? links : $('a[href*="/chapter-"]');
+        targetLinks.each(function (i, el) {
             var $el = $(el);
             var href = $el.attr('href') || '';
             if (!href)
@@ -395,6 +395,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
             var chapterNumber = numMatch ? parseInt(numMatch[1], 10) : i + 1;
             var name = $el.find('.chapter-title, .title').text().trim() ||
                 $el.text().trim();
+            name = name.replace(/\s*\d+\s*(years?|months?|days?|hours?|mins?|minutes?)\s*ago\s*$/i, '').trim();
             name = name.replace(/^\d+/, '').trim();
             if (!name)
                 name = "Chapter ".concat(chapterNumber);
@@ -405,6 +406,19 @@ var NovelPhoenixPlugin = /** @class */ (function () {
             });
         });
         return chapters;
+    };
+    NovelPhoenixPlugin.prototype.deduplicateChapters = function (rawChapters) {
+        rawChapters.sort(function (a, b) { return (a.chapterNumber || 0) - (b.chapterNumber || 0); });
+        var seenPaths = new Set();
+        var cleanChapters = [];
+        for (var _i = 0, rawChapters_1 = rawChapters; _i < rawChapters_1.length; _i++) {
+            var ch = rawChapters_1[_i];
+            if (!seenPaths.has(ch.path)) {
+                seenPaths.add(ch.path);
+                cleanChapters.push(ch);
+            }
+        }
+        return cleanChapters;
     };
     NovelPhoenixPlugin.prototype.parseNovelList = function (html) {
         var _this = this;
