@@ -63,13 +63,6 @@ var novelStatus_1 = require("@libs/novelStatus");
 var filterInputs_1 = require("@libs/filterInputs");
 var HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Upgrade-Insecure-Requests': '1',
 };
 var NovelPhoenixPlugin = /** @class */ (function () {
     function NovelPhoenixPlugin() {
@@ -77,7 +70,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '2.0.7';
+        this.version = '2.0.8';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -222,16 +215,16 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseNovel = function (novelPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, chapters, novel;
+            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, novel;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         cleanPath = novelPath.replace(/^\//, '');
-                        if (!cleanPath.endsWith('/'))
-                            cleanPath += '/';
-                        fullUrl = cleanPath.startsWith('http')
-                            ? cleanPath
-                            : "".concat(this.site).concat(cleanPath);
+                        if (cleanPath.startsWith('http')) {
+                            cleanPath = cleanPath.replace(/^https?:\/\/[^\/]+\//, '');
+                        }
+                        cleanPath = cleanPath.replace(/^\//, '');
+                        fullUrl = "".concat(this.site).concat(cleanPath);
                         return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, { headers: HEADERS })];
                     case 1:
                         html = _a.sent();
@@ -291,9 +284,6 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                 .text()
                                 .trim();
                         }
-                        return [4 /*yield*/, this.fetchAllChapters(novelPath)];
-                    case 2:
-                        chapters = _a.sent();
                         novel = {
                             path: cleanPath,
                             name: title,
@@ -302,7 +292,6 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             status: status,
                             genres: genres.join(', '),
                             summary: summary,
-                            chapters: chapters,
                         };
                         return [2 /*return*/, novel];
                 }
