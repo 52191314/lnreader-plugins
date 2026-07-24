@@ -4,12 +4,41 @@ import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import { Filters, FilterTypes } from '@libs/filterInputs';
 
+const HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept':
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Upgrade-Insecure-Requests': '1',
+};
+
 export class NovelPhoenixPlugin implements Plugin.PluginBase {
   id = 'novelphoenix';
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '1.0.1';
+  version = '2.0.5';
+
+  private checkCloudflare(html: string) {
+    if (
+      html.includes('Cloudflare') ||
+      html.includes('Just a moment...') ||
+      html.includes('Enable JavaScript and cookies to continue') ||
+      html.includes('cf-challenge') ||
+      html.includes('checking your browser') ||
+      html.includes('attention required') ||
+      html.includes('cdn-cgi/challenge')
+    ) {
+      throw new Error(
+        'Cloudflare protection active. Please open in Webview to bypass.',
+      );
+    }
+  }
 
   async popularNovels(
     pageNo: number,
@@ -26,7 +55,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       : filters?.order?.value || 'sort-popular';
 
     const url = `${this.site}genre-${genre}/${order}/status-${status}/all-novel?page=${page}`;
-    const html = await fetchText(url);
+    const html = await fetchText(url, { headers: HEADERS });
+    this.checkCloudflare(html);
     return this.parseNovelList(html);
   }
 
@@ -39,6 +69,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     const url = `${this.site}ajax/searchLive?keyword=${encodeURIComponent(searchTerm)}`;
     const res = await fetchApi(url, {
       headers: {
+        ...HEADERS,
         'X-Requested-With': 'XMLHttpRequest',
       },
     });
@@ -80,7 +111,9 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       ? cleanPath
       : `${this.site}${cleanPath}`;
 
-    const html = await fetchText(fullUrl);
+    const html = await fetchText(fullUrl, { headers: HEADERS });
+    this.checkCloudflare(html);
+
     const $ = loadCheerio(html);
 
     const title =
@@ -133,7 +166,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status = NovelStatus.OnHiatus;
 
     const summaryParagraphs: string[] = [];
-    $('.summary-content p, .description p, .summary p').each((_, el) => {
+    $('.summary p, .summary-content p, .description p').each((_, el) => {
       const text = $(el).text().trim();
       if (text) {
         summaryParagraphs.push(text);
@@ -145,12 +178,14 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       summary = summaryParagraphs.join('\n\n');
     } else {
       summary = $(
-        '.summary-content, .description, .novel-detail, .summary',
+        '.summary, .summary-content, .description, .novel-detail',
       )
         .first()
         .text()
         .trim();
     }
+
+    const chapters = await this.fetchAllChapters(novelPath);
 
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
@@ -160,6 +195,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status,
       genres: genres.join(', '),
       summary,
+      chapters,
     };
 
     return novel;
@@ -167,13 +203,22 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
 
   async fetchAllChapters(slug: string): Promise<Plugin.ChapterItem[]> {
     let cleanSlug = slug.replace(/^\//, '').replace(/\/$/, '');
+    if (cleanSlug.startsWith('http')) {
+      cleanSlug = cleanSlug.replace(/^https?:\/\/[^\/]+\//, '');
+    }
+    cleanSlug = cleanSlug.replace(/^\//, '').replace(/\/$/, '');
     if (cleanSlug.startsWith('novel/')) {
       cleanSlug = cleanSlug.replace(/^novel\//, '');
     }
 
     const baseUrl = `${this.site}novel/${cleanSlug}/chapters`;
-    const firstHtml = await fetchText(`${baseUrl}?page=1`);
+    const firstHtml = await fetchText(`${baseUrl}?page=1`, {
+      headers: HEADERS,
+    });
+    this.checkCloudflare(firstHtml);
+
     const $first = loadCheerio(firstHtml);
+    const firstChapters = this.parseChapterLinks($first);
 
     let maxPage = 1;
     $first('.pagination a, ul.pagination li a, a[href*="page="]').each(
@@ -187,13 +232,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       },
     );
 
-    const firstChapters = this.parseChapterLinks($first);
-
     if (maxPage <= 1) {
-      firstChapters.sort(
-        (a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0),
-      );
-      return firstChapters;
+      return this.deduplicateChapters(firstChapters);
     }
 
     const pagesToFetch: number[] = [];
@@ -201,22 +241,42 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       pagesToFetch.push(p);
     }
 
-    const remainingPages = await Promise.all(
-      pagesToFetch.map(async page => {
-        try {
-          const html = await fetchText(`${baseUrl}?page=${page}`);
+    const BATCH_SIZE = 5;
+    const remainingChapters: Plugin.ChapterItem[] = [];
+
+    for (let i = 0; i < pagesToFetch.length; i += BATCH_SIZE) {
+      const batch = pagesToFetch.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(page => this.fetchPageWithRetry(baseUrl, page)),
+      );
+      remainingChapters.push(...batchResults.flat());
+      if (i + BATCH_SIZE < pagesToFetch.length) {
+        await new Promise(res => setTimeout(res, 50));
+      }
+    }
+
+    const rawAll = [...firstChapters, ...remainingChapters];
+    return this.deduplicateChapters(rawAll);
+  }
+
+  private async fetchPageWithRetry(
+    baseUrl: string,
+    page: number,
+  ): Promise<Plugin.ChapterItem[]> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const html = await fetchText(`${baseUrl}?page=${page}`, {
+          headers: HEADERS,
+        });
+        if (html && html.length > 500 && !html.includes('Cloudflare')) {
           const $ = loadCheerio(html);
-          return this.parseChapterLinks($);
-        } catch {
-          return [];
+          const chs = this.parseChapterLinks($);
+          if (chs.length > 0) return chs;
         }
-      }),
-    );
-
-    const allChapters = [...firstChapters, ...remainingPages.flat()];
-    allChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
-
-    return allChapters;
+      } catch {}
+      await new Promise(res => setTimeout(res, 150 * (attempt + 1)));
+    }
+    return [];
   }
 
   async parseChapter(chapterPath: string): Promise<string> {
@@ -225,7 +285,11 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       ? cleanPath
       : `${this.site}${cleanPath}`;
 
-    const html = await fetchText(fullUrl);
+    const html = await fetchText(fullUrl, {
+      headers: HEADERS,
+    });
+    this.checkCloudflare(html);
+
     const $ = loadCheerio(html);
 
     const contentContainer = $(
@@ -245,10 +309,14 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   private parseChapterLinks($: returnType<typeof loadCheerio>): Plugin.ChapterItem[] {
     const chapters: Plugin.ChapterItem[] = [];
 
-    $('a[href*="/chapter-"]').each((i, el) => {
+    const links = $('.chapter-list a[href*="/chapter-"]');
+
+    links.each((i, el) => {
       const $el = $(el);
       const href = $el.attr('href') || '';
       if (!href) return;
+
+      if (href.includes('chapters?page=')) return;
 
       const cleanHref = href.replace(/^\//, '');
       const numMatch = cleanHref.match(/chapter-(\d+)/i);
@@ -258,8 +326,11 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         $el.find('.chapter-title, .title').text().trim() ||
         $el.text().trim();
 
+      name = name.replace(/\s*\d+\s*(years?|months?|days?|hours?|mins?|minutes?)\s*ago\s*$/i, '').trim();
       name = name.replace(/^\d+/, '').trim();
       if (!name) name = `Chapter ${chapterNumber}`;
+
+      if (name.toLowerCase().includes('read now')) return;
 
       chapters.push({
         name,
@@ -269,6 +340,21 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     });
 
     return chapters;
+  }
+
+  private deduplicateChapters(rawChapters: Plugin.ChapterItem[]): Plugin.ChapterItem[] {
+    rawChapters.sort((a, b) => (a.chapterNumber || 0) - (b.chapterNumber || 0));
+    const seenPaths = new Set<string>();
+    const cleanChapters: Plugin.ChapterItem[] = [];
+
+    for (const ch of rawChapters) {
+      if (!seenPaths.has(ch.path)) {
+        seenPaths.add(ch.path);
+        cleanChapters.push(ch);
+      }
+    }
+
+    return cleanChapters;
   }
 
   private parseNovelList(html: string): Plugin.NovelItem[] {
