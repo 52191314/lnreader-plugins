@@ -70,7 +70,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '2.1.1';
+        this.version = '2.1.2';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -215,9 +215,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseNovel = function (novelPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, novel;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, chapters, _a, novel;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
                         cleanPath = novelPath.replace(/^\//, '');
                         if (cleanPath.startsWith('http')) {
@@ -227,7 +227,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         fullUrl = "".concat(this.site).concat(cleanPath);
                         return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, { headers: HEADERS })];
                     case 1:
-                        html = _a.sent();
+                        html = _b.sent();
                         this.checkCloudflare(html);
                         $ = (0, cheerio_1.load)(html);
                         title = $('.novel-title, h1.title, .novel-name, h1, .book-title')
@@ -284,6 +284,18 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                 .text()
                                 .trim();
                         }
+                        chapters = [];
+                        _b.label = 2;
+                    case 2:
+                        _b.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, this.fetchAllChapters(cleanPath)];
+                    case 3:
+                        chapters = _b.sent();
+                        return [3 /*break*/, 5];
+                    case 4:
+                        _a = _b.sent();
+                        return [3 /*break*/, 5];
+                    case 5:
                         novel = {
                             path: cleanPath,
                             name: title,
@@ -292,6 +304,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             status: status,
                             genres: genres.join(', '),
                             summary: summary,
+                            chapters: chapters,
                         };
                         return [2 /*return*/, novel];
                 }
@@ -503,14 +516,14 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseChapterLinks = function ($) {
         var chapters = [];
-        var links = $('.chapter-list a[href*="chapter-"]');
+        var links = $('.chapter-list a[href*="chapter-"], .list-chapter a[href*="chapter-"], a[href*="/chapter-"]');
         links.each(function (i, el) {
             var _a;
             var $el = $(el);
             var href = $el.attr('href') || '';
             if (!href)
                 return;
-            if (href.includes('chapters?page=') || href.endsWith('/chapters'))
+            if (href.includes('chapters?page=') || href.endsWith('/chapters') || href.endsWith('/chapters/'))
                 return;
             var cleanHref = href.replace(/^\//, '');
             var numMatch = cleanHref.match(/chapter-(\d+)/i);

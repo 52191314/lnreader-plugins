@@ -14,7 +14,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.1.1';
+  version = '2.1.2';
 
   private checkCloudflare(html: string) {
     if (
@@ -175,6 +175,11 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         .trim();
     }
 
+    let chapters: Plugin.ChapterItem[] = [];
+    try {
+      chapters = await this.fetchAllChapters(cleanPath);
+    } catch {}
+
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
       name: title,
@@ -183,6 +188,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       status,
       genres: genres.join(', '),
       summary,
+      chapters,
     };
 
     return novel;
@@ -320,14 +326,14 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   private parseChapterLinks($: returnType<typeof loadCheerio>): Plugin.ChapterItem[] {
     const chapters: Plugin.ChapterItem[] = [];
 
-    const links = $('.chapter-list a[href*="chapter-"]');
+    const links = $('.chapter-list a[href*="chapter-"], .list-chapter a[href*="chapter-"], a[href*="/chapter-"]');
 
     links.each((i, el) => {
       const $el = $(el);
       const href = $el.attr('href') || '';
       if (!href) return;
 
-      if (href.includes('chapters?page=') || href.endsWith('/chapters')) return;
+      if (href.includes('chapters?page=') || href.endsWith('/chapters') || href.endsWith('/chapters/')) return;
 
       const cleanHref = href.replace(/^\//, '');
       const numMatch = cleanHref.match(/chapter-(\d+)/i);
