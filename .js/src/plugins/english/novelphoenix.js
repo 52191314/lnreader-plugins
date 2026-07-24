@@ -70,7 +70,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '2.0.8';
+        this.version = '2.0.9';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -300,10 +300,10 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, maxPage, pagesToFetch, p, BATCH_SIZE, remainingChapters, i, batch, batchResults, rawAll;
+            var cleanSlug, baseUrl, firstHtml, _i, _a, url, text, _b, $first, firstChapters, maxPage, pagesToFetch, p, BATCH_SIZE, remainingChapters, i, batch, batchResults, rawAll;
             var _this = this;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
                         cleanSlug = slug.replace(/^\//, '').replace(/\/$/, '');
                         if (cleanSlug.startsWith('http')) {
@@ -314,14 +314,43 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             cleanSlug = cleanSlug.replace(/^novel\//, '');
                         }
                         baseUrl = "".concat(this.site, "novel/").concat(cleanSlug, "/chapters");
-                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=1"), {
-                                headers: HEADERS,
-                            })];
+                        firstHtml = '';
+                        _i = 0, _a = [
+                            "".concat(baseUrl, "?page=1"),
+                            baseUrl,
+                            "".concat(this.site, "novel/").concat(cleanSlug),
+                        ];
+                        _c.label = 1;
                     case 1:
-                        firstHtml = _a.sent();
+                        if (!(_i < _a.length)) return [3 /*break*/, 6];
+                        url = _a[_i];
+                        _c.label = 2;
+                    case 2:
+                        _c.trys.push([2, 4, , 5]);
+                        return [4 /*yield*/, (0, fetch_1.fetchText)(url, { headers: HEADERS })];
+                    case 3:
+                        text = _c.sent();
+                        if (text && text.length > 500) {
+                            firstHtml = text;
+                            return [3 /*break*/, 6];
+                        }
+                        return [3 /*break*/, 5];
+                    case 4:
+                        _b = _c.sent();
+                        return [3 /*break*/, 5];
+                    case 5:
+                        _i++;
+                        return [3 /*break*/, 1];
+                    case 6:
                         this.checkCloudflare(firstHtml);
                         $first = (0, cheerio_1.load)(firstHtml);
                         firstChapters = this.parseChapterLinks($first);
+                        if (!(firstChapters.length === 0)) return [3 /*break*/, 8];
+                        return [4 /*yield*/, this.fetchPageWithRetry(baseUrl, 1)];
+                    case 7:
+                        firstChapters = _c.sent();
+                        _c.label = 8;
+                    case 8:
                         maxPage = 1;
                         $first('.pagination a, ul.pagination li a, a[href*="page="]').each(function (_, el) {
                             var href = $first(el).attr('href') || '';
@@ -342,23 +371,23 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         BATCH_SIZE = 5;
                         remainingChapters = [];
                         i = 0;
-                        _a.label = 2;
-                    case 2:
-                        if (!(i < pagesToFetch.length)) return [3 /*break*/, 6];
+                        _c.label = 9;
+                    case 9:
+                        if (!(i < pagesToFetch.length)) return [3 /*break*/, 13];
                         batch = pagesToFetch.slice(i, i + BATCH_SIZE);
                         return [4 /*yield*/, Promise.all(batch.map(function (page) { return _this.fetchPageWithRetry(baseUrl, page); }))];
-                    case 3:
-                        batchResults = _a.sent();
+                    case 10:
+                        batchResults = _c.sent();
                         remainingChapters.push.apply(remainingChapters, batchResults.flat());
-                        if (!(i + BATCH_SIZE < pagesToFetch.length)) return [3 /*break*/, 5];
+                        if (!(i + BATCH_SIZE < pagesToFetch.length)) return [3 /*break*/, 12];
                         return [4 /*yield*/, new Promise(function (res) { return setTimeout(res, 50); })];
-                    case 4:
-                        _a.sent();
-                        _a.label = 5;
-                    case 5:
+                    case 11:
+                        _c.sent();
+                        _c.label = 12;
+                    case 12:
                         i += BATCH_SIZE;
-                        return [3 /*break*/, 2];
-                    case 6:
+                        return [3 /*break*/, 9];
+                    case 13:
                         rawAll = __spreadArray(__spreadArray([], firstChapters, true), remainingChapters, true);
                         return [2 /*return*/, this.deduplicateChapters(rawAll)];
                 }
@@ -372,14 +401,13 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         _loop_1 = function (attempt) {
-                            var html, $, chs, _b;
+                            var url, html, $, chs, _b;
                             return __generator(this, function (_c) {
                                 switch (_c.label) {
                                     case 0:
                                         _c.trys.push([0, 2, , 3]);
-                                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=").concat(page), {
-                                                headers: HEADERS,
-                                            })];
+                                        url = page === 1 ? "".concat(baseUrl, "?page=1") : "".concat(baseUrl, "?page=").concat(page);
+                                        return [4 /*yield*/, (0, fetch_1.fetchText)(url, { headers: HEADERS })];
                                     case 1:
                                         html = _c.sent();
                                         if (html &&

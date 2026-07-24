@@ -14,7 +14,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.8';
+  version = '2.0.9';
 
   private checkCloudflare(html: string) {
     if (
@@ -199,13 +199,30 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     }
 
     const baseUrl = `${this.site}novel/${cleanSlug}/chapters`;
-    const firstHtml = await fetchText(`${baseUrl}?page=1`, {
-      headers: HEADERS,
-    });
+
+    let firstHtml = '';
+    for (const url of [
+      `${baseUrl}?page=1`,
+      baseUrl,
+      `${this.site}novel/${cleanSlug}`,
+    ]) {
+      try {
+        const text = await fetchText(url, { headers: HEADERS });
+        if (text && text.length > 500) {
+          firstHtml = text;
+          break;
+        }
+      } catch {}
+    }
+
     this.checkCloudflare(firstHtml);
 
     const $first = loadCheerio(firstHtml);
-    const firstChapters = this.parseChapterLinks($first);
+    let firstChapters = this.parseChapterLinks($first);
+
+    if (firstChapters.length === 0) {
+      firstChapters = await this.fetchPageWithRetry(baseUrl, 1);
+    }
 
     let maxPage = 1;
     $first('.pagination a, ul.pagination li a, a[href*="page="]').each(
@@ -252,9 +269,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   ): Promise<Plugin.ChapterItem[]> {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const html = await fetchText(`${baseUrl}?page=${page}`, {
-          headers: HEADERS,
-        });
+        const url = page === 1 ? `${baseUrl}?page=1` : `${baseUrl}?page=${page}`;
+        const html = await fetchText(url, { headers: HEADERS });
         if (
           html &&
           html.length > 500 &&
