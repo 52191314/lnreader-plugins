@@ -14,7 +14,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.9';
+  version = '2.1.0';
 
   private checkCloudflare(html: string) {
     if (
@@ -201,18 +201,22 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     const baseUrl = `${this.site}novel/${cleanSlug}/chapters`;
 
     let firstHtml = '';
-    for (const url of [
-      `${baseUrl}?page=1`,
-      baseUrl,
-      `${this.site}novel/${cleanSlug}`,
-    ]) {
-      try {
-        const text = await fetchText(url, { headers: HEADERS });
-        if (text && text.length > 500) {
-          firstHtml = text;
-          break;
-        }
-      } catch {}
+    for (let attempt = 0; attempt < 3; attempt++) {
+      for (const url of [`${baseUrl}?page=1`, baseUrl]) {
+        try {
+          const text = await fetchText(url, { headers: HEADERS });
+          if (
+            text &&
+            text.length > 500 &&
+            !text.includes('<title>Just a moment...</title>')
+          ) {
+            firstHtml = text;
+            break;
+          }
+        } catch {}
+      }
+      if (firstHtml) break;
+      await new Promise(res => setTimeout(res, 250 * (attempt + 1)));
     }
 
     this.checkCloudflare(firstHtml);
@@ -281,7 +285,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
           if (chs.length > 0) return chs;
         }
       } catch {}
-      await new Promise(res => setTimeout(res, 150 * (attempt + 1)));
+      await new Promise(res => setTimeout(res, 250 * (attempt + 1)));
     }
     return [];
   }
@@ -316,21 +320,22 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   private parseChapterLinks($: returnType<typeof loadCheerio>): Plugin.ChapterItem[] {
     const chapters: Plugin.ChapterItem[] = [];
 
-    const links = $('.chapter-list a[href*="/chapter-"]');
+    const links = $('.chapter-list a[href*="chapter-"]');
 
     links.each((i, el) => {
       const $el = $(el);
       const href = $el.attr('href') || '';
       if (!href) return;
 
-      if (href.includes('chapters?page=')) return;
+      if (href.includes('chapters?page=') || href.endsWith('/chapters')) return;
 
       const cleanHref = href.replace(/^\//, '');
       const numMatch = cleanHref.match(/chapter-(\d+)/i);
       const chapterNumber = numMatch ? parseInt(numMatch[1], 10) : i + 1;
 
       let name =
-        $el.find('.chapter-title, .title').text().trim() ||
+        $el.attr('title')?.trim() ||
+        $el.find('.chapter-title, strong, .title').text().trim() ||
         $el.text().trim();
 
       name = name.replace(/\s*\d+\s*(years?|months?|days?|hours?|mins?|minutes?)\s*ago\s*$/i, '').trim();
