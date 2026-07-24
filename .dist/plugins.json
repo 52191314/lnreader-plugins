@@ -1028,12 +1028,12 @@
 	},
 	{
 		"id": "novelphoenix",
-		"name": "Novel Phoenix",
+		"name": "NovelPhoenix",
 		"site": "https://novelphoenix.com/",
 		"lang": "English",
-		"version": "2.1.2",
+		"version": "1.0.0",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/novelphoenix.js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/novelphoenix/icon.png"
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/english/novelphoenix/icon.png"
 	},
 	{
 		"id": "novelrest",
