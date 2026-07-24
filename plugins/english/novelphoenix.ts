@@ -12,7 +12,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
   name = 'Novel Phoenix';
   icon = 'src/en/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
-  version = '2.0.0';
+  version = '2.0.1';
 
   async popularNovels(
     pageNo: number,
@@ -219,21 +219,31 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       pagesToFetch.push(p);
     }
 
-    const remainingPages = await Promise.all(
-      pagesToFetch.map(async page => {
-        try {
-          const html = await fetchText(`${baseUrl}?page=${page}`, {
-            headers: { 'User-Agent': USER_AGENT },
-          });
-          const $ = loadCheerio(html);
-          return this.parseChapterLinks($);
-        } catch {
-          return [];
-        }
-      }),
-    );
+    const BATCH_SIZE = 2;
+    const remainingChapters: Plugin.ChapterItem[] = [];
 
-    const rawAll = [...firstChapters, ...remainingPages.flat()];
+    for (let i = 0; i < pagesToFetch.length; i += BATCH_SIZE) {
+      const batch = pagesToFetch.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async page => {
+          try {
+            const html = await fetchText(`${baseUrl}?page=${page}`, {
+              headers: { 'User-Agent': USER_AGENT },
+            });
+            const $ = loadCheerio(html);
+            return this.parseChapterLinks($);
+          } catch {
+            return [];
+          }
+        }),
+      );
+      remainingChapters.push(...batchResults.flat());
+      if (i + BATCH_SIZE < pagesToFetch.length) {
+        await new Promise(res => setTimeout(res, 50));
+      }
+    }
+
+    const rawAll = [...firstChapters, ...remainingChapters];
     return this.deduplicateChapters(rawAll);
   }
 

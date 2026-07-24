@@ -57,7 +57,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '2.0.0';
+        this.version = '2.0.1';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -283,7 +283,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.fetchAllChapters = function (slug) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, mainHtml, maxPage, pagesToFetch, p, remainingPages, rawAll;
+            var cleanSlug, baseUrl, firstHtml, $first, firstChapters, mainHtml, maxPage, pagesToFetch, p, BATCH_SIZE, remainingChapters, i, batch, batchResults, rawAll;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -331,7 +331,14 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         for (p = 2; p <= maxPage; p++) {
                             pagesToFetch.push(p);
                         }
-                        return [4 /*yield*/, Promise.all(pagesToFetch.map(function (page) { return __awaiter(_this, void 0, void 0, function () {
+                        BATCH_SIZE = 2;
+                        remainingChapters = [];
+                        i = 0;
+                        _a.label = 4;
+                    case 4:
+                        if (!(i < pagesToFetch.length)) return [3 /*break*/, 8];
+                        batch = pagesToFetch.slice(i, i + BATCH_SIZE);
+                        return [4 /*yield*/, Promise.all(batch.map(function (page) { return __awaiter(_this, void 0, void 0, function () {
                                 var html, $, _a;
                                 return __generator(this, function (_b) {
                                     switch (_b.label) {
@@ -351,9 +358,19 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                     }
                                 });
                             }); }))];
-                    case 4:
-                        remainingPages = _a.sent();
-                        rawAll = __spreadArray(__spreadArray([], firstChapters, true), remainingPages.flat(), true);
+                    case 5:
+                        batchResults = _a.sent();
+                        remainingChapters.push.apply(remainingChapters, batchResults.flat());
+                        if (!(i + BATCH_SIZE < pagesToFetch.length)) return [3 /*break*/, 7];
+                        return [4 /*yield*/, new Promise(function (res) { return setTimeout(res, 50); })];
+                    case 6:
+                        _a.sent();
+                        _a.label = 7;
+                    case 7:
+                        i += BATCH_SIZE;
+                        return [3 /*break*/, 4];
+                    case 8:
+                        rawAll = __spreadArray(__spreadArray([], firstChapters, true), remainingChapters, true);
                         return [2 /*return*/, this.deduplicateChapters(rawAll)];
                 }
             });
