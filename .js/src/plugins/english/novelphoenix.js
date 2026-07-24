@@ -215,9 +215,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
     };
     NovelPhoenixPlugin.prototype.parseNovel = function (novelPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, chapters, _a, novel;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var cleanPath, fullUrl, html, $, title, cover, author, genres, rawStatus, status, summaryParagraphs, summary, chapters, novel;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
                     case 0:
                         cleanPath = novelPath.replace(/^\//, '');
                         if (cleanPath.startsWith('http')) {
@@ -227,7 +227,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         fullUrl = "".concat(this.site).concat(cleanPath);
                         return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, { headers: HEADERS })];
                     case 1:
-                        html = _b.sent();
+                        html = _a.sent();
                         this.checkCloudflare(html);
                         $ = (0, cheerio_1.load)(html);
                         title = $('.novel-title, h1.title, .novel-name, h1, .book-title')
@@ -284,18 +284,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                                 .text()
                                 .trim();
                         }
-                        chapters = [];
-                        _b.label = 2;
-                    case 2:
-                        _b.trys.push([2, 4, , 5]);
                         return [4 /*yield*/, this.fetchAllChapters(cleanPath)];
-                    case 3:
-                        chapters = _b.sent();
-                        return [3 /*break*/, 5];
-                    case 4:
-                        _a = _b.sent();
-                        return [3 /*break*/, 5];
-                    case 5:
+                    case 2:
+                        chapters = _a.sent();
                         novel = {
                             path: cleanPath,
                             name: title,
@@ -381,6 +372,9 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         attempt++;
                         return [3 /*break*/, 1];
                     case 4:
+                        if (!firstHtml) {
+                            throw new Error("Failed to fetch chapter list for ".concat(baseUrl, " after 3 attempts."));
+                        }
                         this.checkCloudflare(firstHtml);
                         $first = (0, cheerio_1.load)(firstHtml);
                         firstChapters = this.parseChapterLinks($first);

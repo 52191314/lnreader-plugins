@@ -175,10 +175,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         .trim();
     }
 
-    let chapters: Plugin.ChapterItem[] = [];
-    try {
-      chapters = await this.fetchAllChapters(cleanPath);
-    } catch {}
+    const chapters = await this.fetchAllChapters(cleanPath);
 
     const novel: Plugin.SourceNovel = {
       path: cleanPath,
@@ -223,6 +220,12 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
       }
       if (firstHtml) break;
       await new Promise(res => setTimeout(res, 250 * (attempt + 1)));
+    }
+
+    if (!firstHtml) {
+      throw new Error(
+        `Failed to fetch chapter list for ${baseUrl} after 3 attempts.`,
+      );
     }
 
     this.checkCloudflare(firstHtml);
