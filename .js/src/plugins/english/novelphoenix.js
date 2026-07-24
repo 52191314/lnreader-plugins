@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -50,14 +61,22 @@ var fetch_1 = require("@libs/fetch");
 var cheerio_1 = require("cheerio");
 var novelStatus_1 = require("@libs/novelStatus");
 var filterInputs_1 = require("@libs/filterInputs");
-var USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+var HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin',
+    'Upgrade-Insecure-Requests': '1',
+};
 var NovelPhoenixPlugin = /** @class */ (function () {
     function NovelPhoenixPlugin() {
         this.id = 'novelphoenix';
         this.name = 'Novel Phoenix';
         this.icon = 'src/en/novelphoenix/icon.png';
         this.site = 'https://novelphoenix.com/';
-        this.version = '2.0.1';
+        this.version = '2.0.2';
         this.filters = {
             order: {
                 value: 'sort-popular',
@@ -126,6 +145,13 @@ var NovelPhoenixPlugin = /** @class */ (function () {
             },
         };
     }
+    NovelPhoenixPlugin.prototype.checkCloudflare = function (html) {
+        if (html.includes('Cloudflare') ||
+            html.includes('Just a moment...') ||
+            html.includes('Enable JavaScript and cookies to continue')) {
+            throw new Error('Cloudflare protection active. Please open in Webview to bypass.');
+        }
+    };
     NovelPhoenixPlugin.prototype.popularNovels = function (pageNo_1, _a) {
         return __awaiter(this, arguments, void 0, function (pageNo, _b) {
             var page, genre, status, order, url, html;
@@ -141,9 +167,10 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             ? 'sort-new'
                             : ((_e = filters === null || filters === void 0 ? void 0 : filters.order) === null || _e === void 0 ? void 0 : _e.value) || 'sort-popular';
                         url = "".concat(this.site, "genre-").concat(genre, "/").concat(order, "/status-").concat(status, "/all-novel?page=").concat(page);
-                        return [4 /*yield*/, (0, fetch_1.fetchText)(url, { headers: { 'User-Agent': USER_AGENT } })];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)(url, { headers: HEADERS })];
                     case 1:
                         html = _f.sent();
+                        this.checkCloudflare(html);
                         return [2 /*return*/, this.parseNovelList(html)];
                 }
             });
@@ -159,10 +186,7 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             return [2 /*return*/, []];
                         url = "".concat(this.site, "ajax/searchLive?keyword=").concat(encodeURIComponent(searchTerm));
                         return [4 /*yield*/, (0, fetch_1.fetchApi)(url, {
-                                headers: {
-                                    'User-Agent': USER_AGENT,
-                                    'X-Requested-With': 'XMLHttpRequest',
-                                },
+                                headers: __assign(__assign({}, HEADERS), { 'X-Requested-With': 'XMLHttpRequest' }),
                             })];
                     case 1:
                         res = _b.sent();
@@ -205,9 +229,10 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         fullUrl = cleanPath.startsWith('http')
                             ? cleanPath
                             : "".concat(this.site).concat(cleanPath);
-                        return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, { headers: { 'User-Agent': USER_AGENT } })];
+                        return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, { headers: HEADERS })];
                     case 1:
                         html = _a.sent();
+                        this.checkCloudflare(html);
                         $ = (0, cheerio_1.load)(html);
                         title = $('.novel-title, h1.title, .novel-name, h1, .book-title')
                             .first()
@@ -298,15 +323,16 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         }
                         baseUrl = "".concat(this.site, "novel/").concat(cleanSlug, "/chapters");
                         return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=1"), {
-                                headers: { 'User-Agent': USER_AGENT },
+                                headers: HEADERS,
                             })];
                     case 1:
                         firstHtml = _a.sent();
+                        this.checkCloudflare(firstHtml);
                         $first = (0, cheerio_1.load)(firstHtml);
                         firstChapters = this.parseChapterLinks($first);
                         if (!(firstChapters.length === 0)) return [3 /*break*/, 3];
                         return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(this.site, "novel/").concat(cleanSlug), {
-                                headers: { 'User-Agent': USER_AGENT },
+                                headers: HEADERS,
                             })];
                     case 2:
                         mainHtml = _a.sent();
@@ -331,33 +357,14 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                         for (p = 2; p <= maxPage; p++) {
                             pagesToFetch.push(p);
                         }
-                        BATCH_SIZE = 2;
+                        BATCH_SIZE = 5;
                         remainingChapters = [];
                         i = 0;
                         _a.label = 4;
                     case 4:
                         if (!(i < pagesToFetch.length)) return [3 /*break*/, 8];
                         batch = pagesToFetch.slice(i, i + BATCH_SIZE);
-                        return [4 /*yield*/, Promise.all(batch.map(function (page) { return __awaiter(_this, void 0, void 0, function () {
-                                var html, $, _a;
-                                return __generator(this, function (_b) {
-                                    switch (_b.label) {
-                                        case 0:
-                                            _b.trys.push([0, 2, , 3]);
-                                            return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=").concat(page), {
-                                                    headers: { 'User-Agent': USER_AGENT },
-                                                })];
-                                        case 1:
-                                            html = _b.sent();
-                                            $ = (0, cheerio_1.load)(html);
-                                            return [2 /*return*/, this.parseChapterLinks($)];
-                                        case 2:
-                                            _a = _b.sent();
-                                            return [2 /*return*/, []];
-                                        case 3: return [2 /*return*/];
-                                    }
-                                });
-                            }); }))];
+                        return [4 /*yield*/, Promise.all(batch.map(function (page) { return _this.fetchPageWithRetry(baseUrl, page); }))];
                     case 5:
                         batchResults = _a.sent();
                         remainingChapters.push.apply(remainingChapters, batchResults.flat());
@@ -376,6 +383,59 @@ var NovelPhoenixPlugin = /** @class */ (function () {
             });
         });
     };
+    NovelPhoenixPlugin.prototype.fetchPageWithRetry = function (baseUrl, page) {
+        return __awaiter(this, void 0, void 0, function () {
+            var _loop_1, this_1, attempt, state_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _loop_1 = function (attempt) {
+                            var html, $, chs, _b;
+                            return __generator(this, function (_c) {
+                                switch (_c.label) {
+                                    case 0:
+                                        _c.trys.push([0, 2, , 3]);
+                                        return [4 /*yield*/, (0, fetch_1.fetchText)("".concat(baseUrl, "?page=").concat(page), {
+                                                headers: HEADERS,
+                                            })];
+                                    case 1:
+                                        html = _c.sent();
+                                        if (html && html.length > 500 && !html.includes('Cloudflare')) {
+                                            $ = (0, cheerio_1.load)(html);
+                                            chs = this_1.parseChapterLinks($);
+                                            if (chs.length > 0)
+                                                return [2 /*return*/, { value: chs }];
+                                        }
+                                        return [3 /*break*/, 3];
+                                    case 2:
+                                        _b = _c.sent();
+                                        return [3 /*break*/, 3];
+                                    case 3: return [4 /*yield*/, new Promise(function (res) { return setTimeout(res, 150 * (attempt + 1)); })];
+                                    case 4:
+                                        _c.sent();
+                                        return [2 /*return*/];
+                                }
+                            });
+                        };
+                        this_1 = this;
+                        attempt = 0;
+                        _a.label = 1;
+                    case 1:
+                        if (!(attempt < 3)) return [3 /*break*/, 4];
+                        return [5 /*yield**/, _loop_1(attempt)];
+                    case 2:
+                        state_1 = _a.sent();
+                        if (typeof state_1 === "object")
+                            return [2 /*return*/, state_1.value];
+                        _a.label = 3;
+                    case 3:
+                        attempt++;
+                        return [3 /*break*/, 1];
+                    case 4: return [2 /*return*/, []];
+                }
+            });
+        });
+    };
     NovelPhoenixPlugin.prototype.parseChapter = function (chapterPath) {
         return __awaiter(this, void 0, void 0, function () {
             var cleanPath, fullUrl, html, $, contentContainer, chapterText;
@@ -387,10 +447,11 @@ var NovelPhoenixPlugin = /** @class */ (function () {
                             ? cleanPath
                             : "".concat(this.site).concat(cleanPath);
                         return [4 /*yield*/, (0, fetch_1.fetchText)(fullUrl, {
-                                headers: { 'User-Agent': USER_AGENT },
+                                headers: HEADERS,
                             })];
                     case 1:
                         html = _a.sent();
+                        this.checkCloudflare(html);
                         $ = (0, cheerio_1.load)(html);
                         contentContainer = $('#chapter-container, .chapter-content, .content, #content, .chapter-body').first();
                         contentContainer
