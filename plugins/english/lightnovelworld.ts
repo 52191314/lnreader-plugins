@@ -57,7 +57,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
                 { label: 'Completed', value: 'completed' },
                 { label: 'Hiatus', value: 'hiatus' },
             ],
-            type: FilterTypes.ExcludableCheckboxGroup,
+            type: FilterTypes.CheckboxGroup,
         },
         genre_logic: {
             label: 'Genre Logic',
