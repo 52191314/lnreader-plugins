@@ -4,7 +4,7 @@ import { Plugin } from '@typings/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import { FilterTypes, Filters } from '@libs/filterInputs';
 
-const STATUS_MAP: Record<string, NovelStatus> = {
+const STATUS_MAP: Record<string, string> = {
     'ongoing': NovelStatus.Ongoing,
     'completed': NovelStatus.Completed,
     'complete': NovelStatus.Completed,
