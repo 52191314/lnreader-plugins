@@ -1,6 +1,6 @@
 import { fetchText, fetchApi } from '@libs/fetch';
 import { load as loadCheerio } from 'cheerio';
-import { Plugin } from '@typings/plugin';
+import { Plugin } from '@/types/plugin';
 import { NovelStatus } from '@libs/novelStatus';
 import { FilterTypes, Filters } from '@libs/filterInputs';
 
