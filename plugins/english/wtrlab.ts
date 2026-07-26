@@ -626,8 +626,9 @@ class WTRLAB implements Plugin.PluginBase {
     const allChapters: Plugin.ChapterItem[] = [];
     const batchSize = 500;
     let start = 1;
+    let hasMore = true;
 
-    while (true) {
+    while (hasMore) {
       const end = start + batchSize - 1;
 
       try {
@@ -644,12 +645,16 @@ class WTRLAB implements Plugin.PluginBase {
         const chapters = data.chapters ?? data.data?.chapters ?? [];
 
         if (!Array.isArray(chapters) || chapters.length === 0) {
+          hasMore = false;
           break;
         }
 
         const batchChapters: Plugin.ChapterItem[] = chapters.map(
           (apiChapter: ApiChapter) => ({
-            name: apiChapter.title || apiChapter.name || `Chapter ${apiChapter.order}`,
+            name:
+              apiChapter.title ||
+              apiChapter.name ||
+              `Chapter ${apiChapter.order}`,
             path: `${this.sourceLang}serie-${rawId}/${slug}/chapter-${apiChapter.order}`,
             releaseTime: apiChapter.updated_at?.substring(0, 10),
             chapterNumber: apiChapter.order,
@@ -659,12 +664,14 @@ class WTRLAB implements Plugin.PluginBase {
         allChapters.push(...batchChapters);
 
         if (chapters.length < batchSize) {
+          hasMore = false;
           break;
         }
 
         start += batchSize;
       } catch (error) {
         console.error(`Failed to fetch chapters ${start}-${end}:`, error);
+        hasMore = false;
         break;
       }
     }
