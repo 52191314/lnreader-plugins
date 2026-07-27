@@ -21,6 +21,11 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     site = "https://novelphoenix.com/";
     version = "1.0.0";
 
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://novelphoenix.com/',
+    };
+
     async popularNovels(
         pageNo: number,
         options?: Plugin.PopularNovelsOptions<typeof this.filters>
@@ -31,13 +36,13 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         const language = options?.filters?.language?.value || 'all-novel';
 
         const url = `${this.site}${genre}/${order}/${status}/${language}?page=${pageNo}`;
-        const html = await fetchText(url);
+        const html = await fetchText(url, { headers: this.headers });
         return this.parseNovelList(html);
     }
 
     async fetchAllChapters(slug: string): Promise<Plugin.ChapterItem[]> {
         const firstPageUrl = `${this.site}novel/${slug}/chapters`;
-        const firstHtml = await fetchText(firstPageUrl);
+        const firstHtml = await fetchText(firstPageUrl, { headers: this.headers });
         const $first = loadCheerio(firstHtml);
 
         const pageNums = $first('.pagination a')
@@ -51,7 +56,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         if (maxPage > 1) {
             const promises: Promise<string>[] = [];
             for (let p = 2; p <= maxPage; p++) {
-                promises.push(fetchText(`${this.site}novel/${slug}/chapters?page=${p}`));
+                promises.push(fetchText(`${this.site}novel/${slug}/chapters?page=${p}`, { headers: this.headers }));
             }
             const remainingHtmls = await Promise.all(promises);
             pageHtmls.push(...remainingHtmls);
@@ -81,7 +86,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     }
 
     async parseNovel(novelPath: string): Promise<Plugin.SourceNovel> {
-        const html = await fetchText(`${this.site}${novelPath}`);
+        const html = await fetchText(`${this.site}${novelPath}`, { headers: this.headers });
         const $ = loadCheerio(html);
 
         const title = $('.novel-title').text().trim();
@@ -122,7 +127,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
     }
 
     async parseChapter(chapterPath: string): Promise<string> {
-        const html = await fetchText(`${this.site}${chapterPath}`);
+        const html = await fetchText(`${this.site}${chapterPath}`, { headers: this.headers });
         const $ = loadCheerio(html);
 
         const container = $('#chapter-container');
@@ -144,7 +149,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         if (!searchTerm) return [];
         const url = `${this.site}search?keyword=${encodeURIComponent(searchTerm)}&page=${pageNo}`;
         try {
-            const html = await fetchText(url);
+            const html = await fetchText(url, { headers: this.headers });
             return this.parseNovelList(html);
         } catch {
             return [];
@@ -278,4 +283,3 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
 }
 
 export default new NovelPhoenixPlugin();
-
