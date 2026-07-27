@@ -55,12 +55,15 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         const pageHtmls: string[] = [firstHtml];
 
         if (maxPage > 1) {
-            const promises: Promise<string>[] = [];
-            for (let p = 2; p <= maxPage; p++) {
-                promises.push(fetchText(`${this.site}novel/${slug}/chapters?page=${p}`, { headers: this.headers }));
+            const batchSize = 5;
+            for (let p = 2; p <= maxPage; p += batchSize) {
+                const batchPromises: Promise<string>[] = [];
+                for (let i = p; i < Math.min(p + batchSize, maxPage + 1); i++) {
+                    batchPromises.push(fetchText(`${this.site}novel/${slug}/chapters?page=${i}`, { headers: this.headers }));
+                }
+                const batchHtmls = await Promise.all(batchPromises);
+                pageHtmls.push(...batchHtmls);
             }
-            const remainingHtmls = await Promise.all(promises);
-            pageHtmls.push(...remainingHtmls);
         }
 
         const chapters: Plugin.ChapterItem[] = [];
