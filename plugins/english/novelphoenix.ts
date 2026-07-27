@@ -30,7 +30,8 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         pageNo: number,
         options?: Plugin.PopularNovelsOptions<typeof this.filters>
     ): Promise<Plugin.NovelItem[]> {
-        const genre = options?.filters?.genres?.value || 'genre-all';
+        const genreVal = options?.filters?.genres?.value;
+        const genre = (Array.isArray(genreVal) && genreVal.length > 0 ? genreVal[0] : genreVal) || 'genre-all';
         const order = options?.filters?.order?.value || (options?.showLatestNovels ? 'sort-new' : 'sort-popular');
         const status = options?.filters?.status?.value || 'status-all';
         const language = options?.filters?.language?.value || 'all-novel';
@@ -95,7 +96,18 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         const rawCover = $cover.attr('src') || $cover.attr('data-src');
         const cover = rawCover ? `${this.site}${rawCover.replace(/^\//, '')}` : '';
 
-        const summary = $('.summary').text().trim();
+        const $summary = $('.summary');
+        $summary.find('br').replaceWith('\n');
+        $summary.find('p').before('\n').after('\n\n');
+
+        const summary = $summary
+            .text()
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join('\n\n')
+            .trim();
+
         const author = $('.author a').text().trim();
 
         const rawStatus = $('.header-stats strong').last().text().trim().toLowerCase();
@@ -216,10 +228,9 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
             type: FilterTypes.Picker,
         },
         genres: {
-            value: 'genre-all',
-            label: 'Genre',
+            value: [],
+            label: 'Genres',
             options: [
-                { label: 'All', value: 'genre-all' },
                 { label: 'Action', value: 'genre-action' },
                 { label: 'Adult', value: 'genre-adult' },
                 { label: 'Adventure', value: 'genre-adventure' },
@@ -277,7 +288,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
                 { label: 'Yaoi', value: 'genre-yaoi' },
                 { label: 'Yuri', value: 'genre-yuri' },
             ],
-            type: FilterTypes.Picker,
+            type: FilterTypes.CheckboxGroup,
         },
     } satisfies Filters;
 }
