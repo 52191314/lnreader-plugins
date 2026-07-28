@@ -33,7 +33,7 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         }
         const $ = loadCheerio(html);
         const title = $('title').text().trim();
-        if (title.includes('Cloudflare') || title.includes('Just a moment') || title.includes('Attention Required')) {
+        if (title.includes('Cloudflare') || title.includes('Just a moment') || title.includes('Attention Required') || title.includes('Access denied')) {
             throw new Error('Cloudflare is blocking requests. Try to open in WebView.');
         }
         return $;
@@ -44,10 +44,16 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
         options?: Plugin.PopularNovelsOptions<typeof this.filters>
     ): Promise<Plugin.NovelItem[]> {
         const genreVal = options?.filters?.genres?.value;
-        const genre = (Array.isArray(genreVal) && genreVal.length > 0 ? genreVal[0] : genreVal) || 'genre-all';
-        const order = options?.filters?.order?.value || (options?.showLatestNovels ? 'sort-new' : 'sort-popular');
-        const status = options?.filters?.status?.value || 'status-all';
-        const language = options?.filters?.language?.value || 'all-novel';
+        const genre = (Array.isArray(genreVal) && genreVal.length > 0 ? genreVal[0] : (typeof genreVal === 'string' && genreVal ? genreVal : 'genre-all'));
+
+        const orderVal = options?.filters?.order?.value;
+        const order = (typeof orderVal === 'string' && orderVal ? orderVal : (options?.showLatestNovels ? 'sort-new' : 'sort-popular'));
+
+        const statusVal = options?.filters?.status?.value;
+        const status = (typeof statusVal === 'string' && statusVal ? statusVal : 'status-all');
+
+        const langVal = options?.filters?.language?.value;
+        const language = (typeof langVal === 'string' && langVal ? langVal : 'all-novel');
 
         const url = `${this.site}${genre}/${order}/${status}/${language}?page=${pageNo}`;
         const $ = await this.getCheerio(url);
@@ -73,8 +79,12 @@ export class NovelPhoenixPlugin implements Plugin.PluginBase {
                 for (let i = p; i < Math.min(p + batchSize, maxPage + 1); i++) {
                     batchPromises.push(this.getCheerio(`${this.site}novel/${slug}/chapters?page=${i}`));
                 }
-                const batchResults = await Promise.all(batchPromises);
-                pageCheerioList.push(...batchResults);
+                try {
+                    const batchResults = await Promise.all(batchPromises);
+                    pageCheerioList.push(...batchResults);
+                } catch {
+                    break;
+                }
             }
         }
 
