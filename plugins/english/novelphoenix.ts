@@ -19,7 +19,7 @@ const STATUS_MAP: Record<string, string> = {
 class NovelPhoenix implements Plugin.PagePlugin {
   id = 'novelphoenix';
   name = 'NovelPhoenix';
-  version = '1.1.0';
+  version = '1.1.1';
   icon = 'src/english/novelphoenix/icon.png';
   site = 'https://novelphoenix.com/';
   novelList = new Set<string>();
@@ -101,7 +101,10 @@ class NovelPhoenix implements Plugin.PagePlugin {
 
   async popularNovels(
     pageNo: number,
-    options?: Plugin.PopularNovelsOptions<typeof this.filters>,
+    {
+      showLatestNovels,
+      filters,
+    }: Plugin.PopularNovelsOptions<typeof this.filters>,
   ): Promise<Plugin.NovelItem[]> {
     if (pageNo === 1) {
       this.novelList.clear();
@@ -112,23 +115,18 @@ class NovelPhoenix implements Plugin.PagePlugin {
     const url = this.site + 'search-adv';
     const params = new URLSearchParams();
 
-    for (const language of options?.filters?.language?.value ?? []) {
+    for (const language of filters.language.value) {
       params.append('country_id[]', language);
     }
-    params.append('ctgcon', options?.filters?.genre_operator?.value ?? 'and');
-    for (const genre of options?.filters?.genres?.value ?? []) {
+    params.append('ctgcon', filters.genre_operator.value);
+    for (const genre of filters.genres.value) {
       params.append('categories[]', genre);
     }
-    params.append('totalchapter', options?.filters?.chapters?.value ?? '0');
-    params.append('ratcon', options?.filters?.rating_operator?.value ?? 'min');
-    params.append('rating', options?.filters?.rating?.value ?? '0');
-    params.append('status', options?.filters?.status?.value ?? '-1');
-    params.append(
-      'sort',
-      options?.showLatestNovels
-        ? 'date'
-        : options?.filters?.sort?.value ?? 'rank-top',
-    );
+    params.append('totalchapter', filters.chapters.value);
+    params.append('ratcon', filters.rating_operator.value);
+    params.append('rating', filters.rating.value);
+    params.append('status', filters.status.value);
+    params.append('sort', showLatestNovels ? 'date' : filters.sort.value);
     params.append('tagcon', 'and');
     params.append('page', pageNo.toString());
 
