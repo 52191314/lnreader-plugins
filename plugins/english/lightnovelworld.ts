@@ -23,7 +23,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   name = 'LightNovelWorld';
   icon = 'src/en/lightnovelworld/icon.png';
   site = 'https://lightnovelworld.org/';
-  version = '1.0.0';
+  version = '1.0.1';
 
   filters = {
     sort: {
