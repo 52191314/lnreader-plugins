@@ -64,12 +64,12 @@
 	},
 	{
 		"id": "markazriwayat",
-		"name": "Markazriwayat",
+		"name": "مركز الروايات",
 		"site": "https://markazriwayat.com/",
 		"lang": "‎العربية",
-		"version": "2.2.0",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/arabic/Markazriwayat[madara].js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/madara/markazriwayat/icon.png"
+		"version": "1.0.0",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/arabic/Markazriwayat.js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/ar/markazriwayat/icon.png"
 	},
 	{
 		"id": "novel4up",
@@ -481,7 +481,7 @@
 		"name": "Fenrir Realm",
 		"site": "https://fenrirealm.com",
 		"lang": "English",
-		"version": "1.1.1",
+		"version": "1.1.2",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/fenrirrealm.js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/fenrirrealm/icon.png"
 	},
@@ -698,9 +698,9 @@
 		"name": "LightNovelCave",
 		"site": "https://www.lightnovelcave.com/",
 		"lang": "English",
-		"version": "1.0.1",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/LightNovelCave[lightnovelworld].js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/lightnovelworld/lightnovelcave/icon.png"
+		"version": "1.0.2",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/LightNovelCave[webnovelworld].js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/webnovelworld/lightnovelcave/icon.png"
 	},
 	{
 		"id": "lightnovelplus",
@@ -716,9 +716,9 @@
 		"name": "LightNovelPub Vip",
 		"site": "https://lightnovelpub.vip/",
 		"lang": "English",
-		"version": "1.0.1",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/LightNovelPubVip[lightnovelworld].js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/lightnovelworld/lightnovelpubvip/icon.png"
+		"version": "1.0.2",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/LightNovelPubVip[webnovelworld].js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/webnovelworld/lightnovelpubvip/icon.png"
 	},
 	{
 		"id": "lightnoveltranslations",
@@ -1226,6 +1226,15 @@
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/scribblehub/icon.png"
 	},
 	{
+		"id": "skythewoodtranslations",
+		"name": "Skythewood Translations",
+		"site": "https://skythewood.blogspot.com",
+		"lang": "English",
+		"version": "1.0.0",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/skythewood.js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/skythewood/icon.png"
+	},
+	{
 		"id": "sleeptTLS",
 		"name": "SleepyTranslations",
 		"site": "https://sleepytranslations.com/",
@@ -1356,9 +1365,9 @@
 		"name": "Web Novel Pub",
 		"site": "https://www.webnovelworld.org/",
 		"lang": "English",
-		"version": "1.0.1",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/WebNovelPub[lightnovelworld].js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/lightnovelworld/webnovelworld/icon.png"
+		"version": "1.0.2",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/WebNovelPub[webnovelworld].js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/webnovelworld/webnovelworld/icon.png"
 	},
 	{
 		"id": "whitemoonlightnovels",
