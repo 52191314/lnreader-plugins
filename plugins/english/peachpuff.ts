@@ -6,8 +6,10 @@ class PeachPuffTranslations implements Plugin.PluginBase {
   id = 'peachpuff';
   name = 'Peach Puff Translations';
   site = 'https://peachpuff.in/';
-  version = '1.0.0';
+  version = '1.0.1';
   icon = 'src/english/peachpuff/icon.png';
+
+  coversCache?: Map<string, string>;
 
   /**
    * Covers are served through Jetpack's image CDN with resize query params
@@ -28,6 +30,50 @@ class PeachPuffTranslations implements Plugin.PluginBase {
     return href.replace(this.site, '').replace(/\/+$/, '');
   }
 
+  /**
+   * Novel covers are only reachable from each novel page, but WordPress's
+   * REST API maps every attached media item to its parent page in one call —
+   * fetch pages + media and join them on the post id. The homepage lists are
+   * plain links, so without this the browse/search screens have no covers.
+   */
+  async getNovelCovers(): Promise<Map<string, string>> {
+    if (this.coversCache) return this.coversCache;
+    const covers = new Map<string, string>();
+    try {
+      const [pages, media] = await Promise.all([
+        fetchApi(
+          `${this.site}wp-json/wp/v2/pages?per_page=100&_fields=id,link`,
+        ).then(res => res.json()),
+        fetchApi(
+          `${this.site}wp-json/wp/v2/media?per_page=100&_fields=id,post,source_url`,
+        ).then(res => res.json()),
+      ]);
+      const pageLinks = new Map(
+        (pages as { id: number; link: string }[]).map(page => [
+          page.id,
+          page.link,
+        ]),
+      );
+      // First (oldest) attached image per post is the cover.
+      const mediaItems = media as {
+        id: number;
+        post?: number;
+        source_url: string;
+      }[];
+      mediaItems.sort((a, b) => a.id - b.id);
+      for (const item of mediaItems) {
+        const path = item.post
+          ? this.novelPath(pageLinks.get(item.post))
+          : undefined;
+        if (path && !covers.has(path)) covers.set(path, item.source_url);
+      }
+    } catch {
+      // wp-json unreachable — browse/search fall back to cover-less items.
+    }
+    this.coversCache = covers;
+    return covers;
+  }
+
   /** Every novel is a plain link in the homepage's status-grouped lists. */
   parseNovels(loadedCheerio: CheerioAPI): Plugin.NovelItem[] {
     const novels: Plugin.NovelItem[] = [];
@@ -46,15 +92,17 @@ class PeachPuffTranslations implements Plugin.PluginBase {
   // by status (Ongoing / Completed / Dropped) in plain link lists.
   async popularNovels(): Promise<Plugin.NovelItem[]> {
     const body = await fetchApi(this.site).then(res => res.text());
-    return this.parseNovels(parseHTML(body));
+    const novels = this.parseNovels(parseHTML(body));
+    const covers = await this.getNovelCovers();
+    for (const novel of novels) novel.cover = covers.get(novel.path);
+    return novels;
   }
 
   async searchNovels(searchTerm: string): Promise<Plugin.NovelItem[]> {
     // WP search also returns static pages and chapter posts, so filter the
     // canonical homepage list instead.
-    const body = await fetchApi(this.site).then(res => res.text());
     const query = searchTerm.toLowerCase();
-    return this.parseNovels(parseHTML(body)).filter(novel =>
+    return (await this.popularNovels()).filter(novel =>
       novel.name.toLowerCase().includes(query),
     );
   }
@@ -81,6 +129,8 @@ class PeachPuffTranslations implements Plugin.PluginBase {
     });
 
     // Synopsis sits between the "Description:" label and the TOC heading.
+    // Keep the site's paragraph breaks: one blank line between paragraphs,
+    // and honor <br> within a paragraph.
     const descriptionLabel = loadedCheerio(
       'p.wp-block-paragraph strong:contains("Description:")',
     ).first();
@@ -88,10 +138,14 @@ class PeachPuffTranslations implements Plugin.PluginBase {
       const summary = descriptionLabel
         .parent()
         .nextUntil('h4.wp-block-heading')
-        .map((_, element) => loadedCheerio(element).text().trim())
+        .map((_, element) => {
+          const paragraph = loadedCheerio(element);
+          paragraph.find('br').replaceWith('\n');
+          return paragraph.text().trim();
+        })
         .get()
         .filter(Boolean)
-        .join('\n');
+        .join('\n\n');
       if (summary) novel.summary = summary;
     }
 
