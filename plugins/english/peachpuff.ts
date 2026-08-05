@@ -6,16 +6,11 @@ class PeachPuffTranslations implements Plugin.PluginBase {
   id = 'peachpuff';
   name = 'Peach Puff Translations';
   site = 'https://peachpuff.in/';
-  version = '1.0.1';
+  version = '1.0.2';
   icon = 'src/english/peachpuff/icon.png';
 
   coversCache?: Map<string, string>;
 
-  /**
-   * Covers are served through Jetpack's image CDN with resize query params
-   * (https://i0.wp.com/peachpuff.in/...?resize=200%2C266&ssl=1); drop the CDN
-   * prefix and the query string to get the origin URL.
-   */
   cleanCover(src?: string): string | undefined {
     if (!src) return undefined;
     return src
@@ -24,18 +19,11 @@ class PeachPuffTranslations implements Plugin.PluginBase {
       .split('?')[0];
   }
 
-  /** Absolute hrefs from the site become site-relative paths. */
   novelPath(href: string | undefined): string | undefined {
     if (!href) return undefined;
     return href.replace(this.site, '').replace(/\/+$/, '');
   }
 
-  /**
-   * Novel covers are only reachable from each novel page, but WordPress's
-   * REST API maps every attached media item to its parent page in one call —
-   * fetch pages + media and join them on the post id. The homepage lists are
-   * plain links, so without this the browse/search screens have no covers.
-   */
   async getNovelCovers(): Promise<Map<string, string>> {
     if (this.coversCache) return this.coversCache;
     const covers = new Map<string, string>();
@@ -54,7 +42,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
           page.link,
         ]),
       );
-      // First (oldest) attached image per post is the cover.
       const mediaItems = media as {
         id: number;
         post?: number;
@@ -68,13 +55,13 @@ class PeachPuffTranslations implements Plugin.PluginBase {
         if (path && !covers.has(path)) covers.set(path, item.source_url);
       }
     } catch {
-      // wp-json unreachable — browse/search fall back to cover-less items.
+      this.coversCache = covers;
+      return covers;
     }
     this.coversCache = covers;
     return covers;
   }
 
-  /** Every novel is a plain link in the homepage's status-grouped lists. */
   parseNovels(loadedCheerio: CheerioAPI): Plugin.NovelItem[] {
     const novels: Plugin.NovelItem[] = [];
     loadedCheerio('ul.wp-block-list li a[title]').each((_, element) => {
@@ -88,8 +75,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
     return novels;
   }
 
-  // No dedicated browse page exists; the homepage lists every novel grouped
-  // by status (Ongoing / Completed / Dropped) in plain link lists.
   async popularNovels(): Promise<Plugin.NovelItem[]> {
     const body = await fetchApi(this.site).then(res => res.text());
     const novels = this.parseNovels(parseHTML(body));
@@ -99,8 +84,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
   }
 
   async searchNovels(searchTerm: string): Promise<Plugin.NovelItem[]> {
-    // WP search also returns static pages and chapter posts, so filter the
-    // canonical homepage list instead.
     const query = searchTerm.toLowerCase();
     return (await this.popularNovels()).filter(novel =>
       novel.name.toLowerCase().includes(query),
@@ -120,7 +103,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
       loadedCheerio('figure.wp-block-image img').first().attr('src'),
     );
 
-    // Title/Author/Total Chapters live in one paragraph as <strong> labels.
     loadedCheerio('p.wp-block-paragraph strong').each((_, element) => {
       const key = loadedCheerio(element).text().trim().toLowerCase();
       if (key === 'author:') {
@@ -128,9 +110,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
       }
     });
 
-    // Synopsis sits between the "Description:" label and the TOC heading.
-    // Keep the site's paragraph breaks: one blank line between paragraphs,
-    // and honor <br> within a paragraph.
     const descriptionLabel = loadedCheerio(
       'p.wp-block-paragraph strong:contains("Description:")',
     ).first();
@@ -149,7 +128,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
       if (summary) novel.summary = summary;
     }
 
-    // All chapters are on the novel page in one list.
     const chapters: Plugin.ChapterItem[] = [];
     loadedCheerio('.lcp_catlist li a').each((_, element) => {
       const path = this.novelPath(loadedCheerio(element).attr('href'));
@@ -169,8 +147,6 @@ class PeachPuffTranslations implements Plugin.PluginBase {
       res.text(),
     );
     const loadedCheerio = parseHTML(body);
-    // Prev/TOC/Next buttons render inside the content container; they are
-    // navigation, not chapter content.
     loadedCheerio('.category-post-dropdown-container').remove();
     loadedCheerio('script, style').remove();
 
