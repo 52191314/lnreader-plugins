@@ -104,7 +104,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
   getHostname(url: string): string {
     url = url.split('/')[2];
     const url_parts = url.split('.');
-    url_parts.pop(); // remove TLD
+    url_parts.pop();
     return url_parts.join('.');
   }
 
@@ -255,7 +255,6 @@ export class MadaraPlugin implements Plugin.PluginBase {
       }
     });
 
-    // Checks for "Madara NovelHub" version
     {
       if (!novel.genres)
         novel.genres = loadedCheerio('.genres-content').text().trim();
@@ -309,8 +308,6 @@ export class MadaraPlugin implements Plugin.PluginBase {
         referrer: this.site + novelPath,
       }).then((res: Response) => res.text());
 
-      // Some sites paginate the chapter list (e.g. 200 per page).
-      // Detect pagination links and fetch the remaining pages.
       const $firstPage = parseHTML(html);
       const pageLinks = $firstPage('.pagination a[data-page]');
       if (pageLinks.length > 0) {
@@ -426,14 +423,14 @@ export class MadaraPlugin implements Plugin.PluginBase {
   }
 
   parseData = (date: string) => {
-    let dayJSDate = dayjs(); // today
+    let dayJSDate = dayjs();
     const timeAgo = date.match(/\d+/)?.[0] || '';
     const timeAgoInt = parseInt(timeAgo, 10);
 
-    if (!timeAgo) return date; // there is no number!
+    if (!timeAgo) return date;
 
     if (includesAny(date, ['detik', 'segundo', 'second', 'วินาที'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'second'); // go back N seconds
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'second');
     } else if (
       includesAny(date, [
         'menit',
@@ -445,7 +442,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
         'دقائق',
       ])
     ) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'minute'); // go back N minute
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'minute');
     } else if (
       includesAny(date, [
         'jam',
@@ -460,7 +457,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
         '小时',
       ])
     ) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'hours'); // go back N hours
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'hours');
     } else if (
       includesAny(date, [
         'hari',
@@ -476,13 +473,13 @@ export class MadaraPlugin implements Plugin.PluginBase {
         '天',
       ])
     ) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'days'); // go back N days
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'days');
     } else if (includesAny(date, ['week', 'semana'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'week'); // go back N a week
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'week');
     } else if (includesAny(date, ['month', 'mes'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'month'); // go back N months
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'month');
     } else if (includesAny(date, ['year', 'año'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'year'); // go back N years
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'year');
     } else {
       if (dayjs(date).format('LL') !== 'Invalid Date') {
         return dayjs(date).format('LL');
