@@ -1,0 +1,20 @@
+# Normalize line endings to LF in the working tree on every platform.
+# Overrides core.autocrlf so prettier (endOfLine: lf) passes on Windows.
+* text=auto eol=lf
+
+# Explicitly mark binary files as non-text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.pdf binary
