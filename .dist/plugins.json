@@ -279,15 +279,6 @@
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/lightnovelwp/blumeverse/icon.png"
 	},
 	{
-		"id": "boxnovel",
-		"name": "BoxNovel",
-		"site": "https://novelnice.com/",
-		"lang": "English",
-		"version": "2.2.2",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/BoxNovel[madara].js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/madara/boxnovel/icon.png"
-	},
-	{
 		"id": "cherrymistcafe",
 		"name": "Cherry Mist Cafe",
 		"site": "https://cherrymist.cafe/",
@@ -1016,6 +1007,15 @@
 		"version": "2.2.0",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/NovelMultiverse[madara].js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/madara/novelmultiverse/icon.png"
+	},
+	{
+		"id": "novelnice",
+		"name": "Novel Nice",
+		"site": "https://novelnice.com/",
+		"lang": "English",
+		"version": "1.0.0",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/NovelNice[madara].js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/madara/novelnice/icon.png"
 	},
 	{
 		"id": "novelninja",
