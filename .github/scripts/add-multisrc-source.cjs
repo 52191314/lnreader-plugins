@@ -86,7 +86,7 @@ const language = canonicalLanguage(issueField(body, 'Language'));
 if (!submittedUrl || !name) {
   throw new Error('The issue is missing a Website URL or Plugin Name');
 }
-if (name.length > 100 || /[\/\\\0\r\n]/.test(name)) {
+if (name.length > 100 || /[/\\\0\r\n]/.test(name)) {
   throw new Error('The Plugin Name contains unsupported characters');
 }
 

@@ -7,8 +7,9 @@ type WPPage = {
   slug: string;
   date: string;
   featured_media: number;
+  content?: { rendered: string };
   _embedded?: {
-    'wp:featuredmedia'?: Array<{ source_url: string }>;
+    'wp:featuredmedia'?: { source_url: string }[];
   };
 };
 
@@ -35,10 +36,7 @@ class RewayatFans implements Plugin.PluginBase {
     return page._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
   }
 
-  async popularNovels(
-    page: number,
-    { showLatestNovels }: Plugin.PopularNovelsOptions,
-  ): Promise<Plugin.NovelItem[]> {
+  async popularNovels(page: number): Promise<Plugin.NovelItem[]> {
     const pages = await this.fetchJson<WPPage[]>(
       `${this.site}wp-json/wp/v2/pages?per_page=20&page=${page}&orderby=date&order=desc&_embed`,
     );
@@ -73,7 +71,11 @@ class RewayatFans implements Plugin.PluginBase {
     const searchName = novelPrefix.replace(/-/g, ' ');
 
     const normalize = (s: string) =>
-      s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
     const normalizedSearch = normalize(searchName);
 
     let pg = 1;
@@ -131,9 +133,11 @@ class RewayatFans implements Plugin.PluginBase {
     );
 
     const arr = Array.isArray(pages) ? pages : [pages];
-    if (arr.length > 0 && (arr[0] as any).content?.rendered) {
-      const $ = parseHTML((arr[0] as any).content.rendered);
-      $('script, style, .sharedaddy, .jp-relatedposts, .wp-block-spacer').remove();
+    if (arr.length > 0 && arr[0].content?.rendered) {
+      const $ = parseHTML(arr[0].content.rendered);
+      $(
+        'script, style, .sharedaddy, .jp-relatedposts, .wp-block-spacer',
+      ).remove();
       return $.html();
     }
 

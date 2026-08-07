@@ -400,6 +400,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
     if (this.options?.customJs) {
       try {
         // CustomJS HERE
+        void 0;
       } catch (error) {
         console.error('Error executing customJs:', error);
         throw error;
