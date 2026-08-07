@@ -12,11 +12,12 @@ procedures that matter; keep this file updated when the workflow changes.
   - `npx eslint plugins/<lang>/<file>.ts`
   - `npx prettier --check plugins/<lang>/<file>.ts`
   - `npx tsc --project tsconfig.production.json --noEmit`
-- Repo-wide `npm run lint` has PRE-EXISTING errors in gitignored generated
-  `*[madara].ts` files — judge per-file, not repo-wide totals.
-- `npm run format` is `prettier --write .` — it rewrites the ENTIRE tree
-  (and on Windows CRLF hosts it makes git status flag every file). Use
-  `npm run format:check` (or scoped `npx prettier --check <files>`) for
+- Repo-wide gates are GREEN on master (as of a3a53a3): `pnpm run lint`,
+  `pnpm run format:check`, and `npx tsc --project tsconfig.production.json
+  --noEmit` all exit 0. History of the lint/format problems and fixes:
+  `docs/lint-format-gates.md`.
+- `npm run format` is `prettier --write .` — it rewrites the ENTIRE tree.
+  Use `pnpm run format:check` (or scoped `npx prettier --check <files>`) for
   verification, never the write form.
 
 ## Build (producing release artifacts)
