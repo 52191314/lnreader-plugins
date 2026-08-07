@@ -18,6 +18,7 @@ type MadaraOptions = {
   versionIncrements?: number;
   customJs?: string;
   hasLocked?: boolean;
+  browsePage?: string;
 };
 
 export type MadaraMetadata = {
@@ -166,7 +167,9 @@ export class MadaraPlugin implements Plugin.PluginBase {
       showLatestNovels,
     }: Plugin.PopularNovelsOptions<typeof this.filters>,
   ): Promise<Plugin.NovelItem[]> {
-    let url = this.site + '/page/' + pageNo + '/?s=&post_type=wp-manga';
+    let url = this.options?.browsePage
+      ? this.site + this.options.browsePage + '/page/' + pageNo + '/?'
+      : this.site + '/page/' + pageNo + '/?s=&post_type=wp-manga';
     if (!filters) filters = this.filters || {};
     if (showLatestNovels) url += '&m_orderby=latest';
     for (const key in filters) {
@@ -304,6 +307,32 @@ export class MadaraPlugin implements Plugin.PluginBase {
         method: 'POST',
         referrer: this.site + novelPath,
       }).then((res: Response) => res.text());
+
+      // Some sites paginate the chapter list (e.g. 200 per page).
+      // Detect pagination links and fetch the remaining pages.
+      const $firstPage = parseHTML(html);
+      const pageLinks = $firstPage('.pagination a[data-page]');
+      if (pageLinks.length > 0) {
+        const maxPage = Math.max(
+          ...pageLinks
+            .map((_, el) =>
+              parseInt($firstPage(el).attr('data-page') || '1', 10),
+            )
+            .get(),
+        );
+        const lastHref = pageLinks.last().attr('href') || '';
+        const queryIndex = lastHref.indexOf('?');
+        if (queryIndex !== -1) {
+          const queryTemplate = lastHref.slice(queryIndex).replace(/\d+$/, '');
+          for (let page = 2; page <= maxPage; page++) {
+            const pageHtml = await fetchApi(
+              this.site + novelPath + 'ajax/chapters/' + queryTemplate + page,
+              { method: 'POST', referrer: this.site + novelPath },
+            ).then((res: Response) => res.text());
+            if (pageHtml && pageHtml !== '0') html += pageHtml;
+          }
+        }
+      }
     } else {
       const novelId =
         loadedCheerio('.rating-post-id').attr('value') ||

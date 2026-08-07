@@ -649,7 +649,8 @@
     "options": {
       "lang": "English",
       "useNewChapterEndpoint": true,
-      "versionIncrements": 2
+      "versionIncrements": 3,
+      "browsePage": "read"
     }
   }
 ]
