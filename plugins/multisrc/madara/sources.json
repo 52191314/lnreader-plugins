@@ -643,13 +643,13 @@
     }
   },
   {
-    "id": "boxnovel",
+    "id": "novelnice",
     "sourceSite": "https://novelnice.com/",
-    "sourceName": "BoxNovel",
+    "sourceName": "Novel Nice",
     "options": {
       "lang": "English",
       "useNewChapterEndpoint": true,
-      "versionIncrements": 3,
+      "version": "1.0.0",
       "browsePage": "read"
     }
   }

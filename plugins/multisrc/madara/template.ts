@@ -16,6 +16,7 @@ type MadaraOptions = {
   lang?: string;
   orderBy?: string;
   versionIncrements?: number;
+  version?: string;
   customJs?: string;
   hasLocked?: boolean;
   browsePage?: string;
@@ -47,7 +48,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
     this.icon = `multisrc/madara/${metadata.id.toLowerCase()}/icon.png`;
     this.site = metadata.sourceSite;
     const versionIncrements = metadata.options?.versionIncrements || 0;
-    this.version = `2.2.${versionIncrements}`;
+    this.version = metadata.options?.version || `2.2.${versionIncrements}`;
     this.options = metadata.options;
     this.filters = metadata.filters;
 
