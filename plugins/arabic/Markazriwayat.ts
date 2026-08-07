@@ -12,7 +12,6 @@ class Markazriwayat implements Plugin.PluginBase {
   icon = 'src/ar/markazriwayat/icon.png';
   site = 'https://markazriwayat.com/';
 
-
   filters = {
     order: {
       type: FilterTypes.Picker,
@@ -82,15 +81,16 @@ class Markazriwayat implements Plugin.PluginBase {
     try {
       if (page > 1) return [];
       const apiUrl = `${this.site}wp-json/theam/v1/novel-search?term=${encodeURIComponent(searchTerm)}&per_page=20`;
-      const res = await fetchApi(apiUrl)
+      const res = await fetchApi(apiUrl);
       if (!res.ok) return [];
       const data = await res.json();
       return (data.items || []).map(
         (item: { title: string; link: string; cover?: string }) => ({
-        name: item.title,
-        path: item.link.replace(this.site, ''),
-        cover: item.cover || defaultCover,
-      }));
+          name: item.title,
+          path: item.link.replace(this.site, ''),
+          cover: item.cover || defaultCover,
+        }),
+      );
     } catch {
       // Fallback: use library search HTML
       try {

@@ -42,7 +42,9 @@ class NovelArrow implements Plugin.PluginBase {
     const novelId = novelPath.replace('novel/', '').replace(/^\//, '');
 
     // Collect genres
-    let genres = $('meta[name="og:novel:genre"], meta[property="og:novel:genre"]').attr('content');
+    let genres = $(
+      'meta[name="og:novel:genre"], meta[property="og:novel:genre"]',
+    ).attr('content');
 
     if (!genres) {
       const genreList: string[] = [];
@@ -54,16 +56,21 @@ class NovelArrow implements Plugin.PluginBase {
     }
 
     // Get the full summary from the paragraphs inside class .site-reading-copy
-    const fullSummary = $('.site-reading-copy p')
-      .map((i, el) => $(el).text().trim())
-      .get()
-      .join('\n\n') || $('.site-reading-copy').text().trim();
+    const fullSummary =
+      $('.site-reading-copy p')
+        .map((i, el) => $(el).text().trim())
+        .get()
+        .join('\n\n') || $('.site-reading-copy').text().trim();
 
     const novel: Plugin.SourceNovel = {
       path: novelPath,
-      name: $('meta[name="og:novel:novel_name"]').attr('content') || $('h1').first().text().trim(),
+      name:
+        $('meta[name="og:novel:novel_name"]').attr('content') ||
+        $('h1').first().text().trim(),
       cover: $('meta[property="og:image"]').attr('content'),
-      author: $('meta[name="og:novel:author"]').attr('content') || $('meta[name="author"]').attr('content'),
+      author:
+        $('meta[name="og:novel:author"]').attr('content') ||
+        $('meta[name="author"]').attr('content'),
       status:
         $('meta[name="og:novel:status"]').attr('content') === 'Ongoing'
           ? NovelStatus.Ongoing

@@ -374,8 +374,7 @@ class NovelUpdates implements Plugin.PluginBase {
               const content = data[String(mapping[contentKey])] as string;
               const notes = data[String(mapping[notesKey])] as string;
               const footnotes = data[String(mapping[footnotesKey])] as
-                | string
-                | undefined;
+                string | undefined;
               // Combine the parts with appropriate formatting
               chapterText =
                 content +

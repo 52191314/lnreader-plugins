@@ -276,8 +276,7 @@ class RLIB implements Plugin.PluginBase {
 
   getUser = () => {
     const user = storage.get('user') as
-      | { token: string; id: number }
-      | undefined;
+      { token: string; id: number } | undefined;
     if (user) {
       return { token: { Authorization: 'Bearer ' + user.token }, ui: user.id };
     }

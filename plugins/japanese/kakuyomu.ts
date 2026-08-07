@@ -173,7 +173,7 @@ class KakuyomuPlugin implements Plugin.PluginBase {
         return {
           name: v.chapter?.title
             ? `${v.chapter?.title} - ${v.episode?.title}`
-            : v.episode?.title ?? '',
+            : (v.episode?.title ?? ''),
           path: `${novelPath}/episodes/${v.episode?.id}`,
           releaseTime: new Date(v.episode?.publishedAt ?? 0).toISOString(),
         };

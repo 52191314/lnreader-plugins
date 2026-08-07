@@ -118,16 +118,14 @@ class Chrysanthemumgarden implements Plugin.PluginBase {
 
     const allNovels: ChrysanthemumGardenNovelItem[] = (
       body as ChrysanthemumGardenNovel[]
-    ).map(
-      (novel: ChrysanthemumGardenNovel): ChrysanthemumGardenNovelItem => ({
-        name: novel.name,
-        path: novel.link
-          .replace(this.site, '')
-          .replace(/\/$/, '')
-          .replace(/^\//, ''),
-        cover: defaultCover,
-      }),
-    );
+    ).map((novel: ChrysanthemumGardenNovel): ChrysanthemumGardenNovelItem => ({
+      name: novel.name,
+      path: novel.link
+        .replace(this.site, '')
+        .replace(/\/$/, '')
+        .replace(/^\//, ''),
+      cover: defaultCover,
+    }));
 
     if (!allNovels) return [];
 

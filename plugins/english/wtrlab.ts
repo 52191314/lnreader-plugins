@@ -408,7 +408,7 @@ class WTRLAB implements Plugin.PluginBase {
         combined = new Uint8Array(ciphertext.length + tag.length);
 
       // Make the ciphertext + tag format expected for decryption
-      combined.set(ciphertext), combined.set(tag, ciphertext.length);
+      (combined.set(ciphertext), combined.set(tag, ciphertext.length));
 
       // Decrypt with encKey
       // Convert the key to bytes (first 32 characters of encKey)
@@ -512,7 +512,9 @@ class WTRLAB implements Plugin.PluginBase {
     let chapterNo: number | null = null;
     let loadedCheerio = null;
 
-    const urlMatch = chapterPath.match(/(?:serie|novel)-?(\d+)\/[^/]+\/chapter-(\d+)/);
+    const urlMatch = chapterPath.match(
+      /(?:serie|novel)-?(\d+)\/[^/]+\/chapter-(\d+)/,
+    );
     if (urlMatch) {
       rawId = parseInt(urlMatch[1], 10);
       chapterNo = parseInt(urlMatch[2], 10);
