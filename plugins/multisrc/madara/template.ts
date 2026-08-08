@@ -104,7 +104,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
   getHostname(url: string): string {
     url = url.split('/')[2];
     const url_parts = url.split('.');
-    url_parts.pop();
+    url_parts.pop(); // remove TLD
     return url_parts.join('.');
   }
 
@@ -255,6 +255,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
       }
     });
 
+    // Checks for "Madara NovelHub" version
     {
       if (!novel.genres)
         novel.genres = loadedCheerio('.genres-content').text().trim();
@@ -423,14 +424,14 @@ export class MadaraPlugin implements Plugin.PluginBase {
   }
 
   parseData = (date: string) => {
-    let dayJSDate = dayjs();
+    let dayJSDate = dayjs(); // today
     const timeAgo = date.match(/\d+/)?.[0] || '';
     const timeAgoInt = parseInt(timeAgo, 10);
 
-    if (!timeAgo) return date;
+    if (!timeAgo) return date; // there is no number!
 
     if (includesAny(date, ['detik', 'segundo', 'second', 'วินาที'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'second');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'second'); // go back N seconds
     } else if (
       includesAny(date, [
         'menit',
@@ -442,7 +443,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
         'دقائق',
       ])
     ) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'minute');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'minute'); // go back N minute
     } else if (
       includesAny(date, [
         'jam',
@@ -457,7 +458,7 @@ export class MadaraPlugin implements Plugin.PluginBase {
         '小时',
       ])
     ) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'hours');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'hours'); // go back N hours
     } else if (
       includesAny(date, [
         'hari',
@@ -473,13 +474,13 @@ export class MadaraPlugin implements Plugin.PluginBase {
         '天',
       ])
     ) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'days');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'days'); // go back N days
     } else if (includesAny(date, ['week', 'semana'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'week');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'week'); // go back N a week
     } else if (includesAny(date, ['month', 'mes'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'month');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'month'); // go back N months
     } else if (includesAny(date, ['year', 'año'])) {
-      dayJSDate = dayJSDate.subtract(timeAgoInt, 'year');
+      dayJSDate = dayJSDate.subtract(timeAgoInt, 'year'); // go back N years
     } else {
       if (dayjs(date).format('LL') !== 'Invalid Date') {
         return dayjs(date).format('LL');
