@@ -218,9 +218,9 @@
 	{
 		"id": "allnovel",
 		"name": "AllNovel",
-		"site": "https://allnovel.org/",
+		"site": "https://novelfull.com/",
 		"lang": "English",
-		"version": "2.2.1",
+		"version": "2.2.2",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/AllNovel[readnovelfull].js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/readnovelfull/allnovel/icon.png"
 	},
