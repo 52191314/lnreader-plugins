@@ -6,7 +6,7 @@
     "options": {
       "lang": "English",
       "minorVer": 4,
-      "versionIncrement": 3
+      "versionIncrement": 4
     }
   },
   {
@@ -14,7 +14,8 @@
     "sourceSite": "https://novelphoenix.com/",
     "sourceName": "Novel Phoenix",
     "options": {
-      "lang": "English"
+      "lang": "English",
+      "versionIncrement": 1
     }
   }
 ]

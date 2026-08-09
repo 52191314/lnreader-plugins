@@ -13,6 +13,18 @@ function getFilters(name, html) {
 
   const filters = {
     filters: {
+      sort: {
+        label: 'Sort Results By',
+        value: 'rank-top',
+        options: [],
+        type: 'Picker',
+      },
+      status: {
+        label: 'Translation Status',
+        value: '-1',
+        options: [],
+        type: 'Picker',
+      },
       language: {
         label: 'Language',
         value: [],
@@ -49,18 +61,6 @@ function getFilters(name, html) {
         options: [],
         type: 'Picker',
       },
-      status: {
-        label: 'Translation Status',
-        value: '-1',
-        options: [],
-        type: 'Picker',
-      },
-      sort: {
-        label: 'Sort Results By',
-        value: 'rank-top',
-        options: [],
-        type: 'Picker',
-      },
       tagcon: {
         label: 'Tags (And/Or)',
         value: 'and',
@@ -74,6 +74,24 @@ function getFilters(name, html) {
       },
     },
   };
+
+  // ==================== Sort ====================
+  // Keep 'rank-top' as the default (Ranked home page) even though the site's
+  // form preselected 'date' (Newest Updates).
+  $('select[name="sort"] option').each((i, el) => {
+    filters.filters.sort.options.push({
+      label: $(el).text().trim(),
+      value: $(el).attr('value'),
+    });
+  });
+
+  // ==================== Status ====================
+  $('select[name="status"] option').each((i, el) => {
+    filters.filters.status.options.push({
+      label: $(el).text().trim(),
+      value: $(el).attr('value'),
+    });
+  });
 
   // ==================== Language ====================
   filters.filters.language.label =
@@ -136,28 +154,6 @@ function getFilters(name, html) {
   const ratingSelected =
     $('select[name="rating"] option:selected').attr('value') || '0';
   filters.filters.rating.value = ratingSelected;
-
-  // ==================== Status ====================
-  $('select[name="status"] option').each((i, el) => {
-    filters.filters.status.options.push({
-      label: $(el).text().trim(),
-      value: $(el).attr('value'),
-    });
-  });
-  const statusSelected =
-    $('select[name="status"] option:selected').attr('value') || '-1';
-  filters.filters.status.value = statusSelected;
-
-  // ==================== Sort ====================
-  $('select[name="sort"] option').each((i, el) => {
-    filters.filters.sort.options.push({
-      label: $(el).text().trim(),
-      value: $(el).attr('value'),
-    });
-  });
-  const sortSelected =
-    $('select[name="sort"] option:selected').attr('value') || 'rank-top';
-  filters.filters.sort.value = sortSelected;
 
   // ==================== Tag operator ====================
   $('select[name="tagcon"] option').each((i, el) => {

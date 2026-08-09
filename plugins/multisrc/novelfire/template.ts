@@ -216,7 +216,8 @@ export class NovelFirePlugin implements Plugin.PagePlugin {
       throw new NovelFireThrottlingError();
     if (body.includes('Page Not Found 404')) throw new NovelFireAjaxNotFound();
 
-    return (JSON.parse(body).data || [])
+    const parsed = JSON.parse(body);
+    const chapters = (parsed.data || [])
       .flatMap(
         (idx: { title?: string; slug: string; n_sort: string | number }) => {
           const name = load(idx.title || idx.slug)
@@ -240,6 +241,106 @@ export class NovelFirePlugin implements Plugin.PagePlugin {
         (a: Plugin.ChapterItem, b: Plugin.ChapterItem) =>
           (a.chapterNumber || 0) - (b.chapterNumber || 0),
       );
+
+    // The AJAX response has no chapter upload dates, but the server-rendered
+    // chapter pages do. Merge them in by chapter number (best effort).
+    try {
+      const dates = await this.getChapterDates(
+        novelPath,
+        start,
+        length,
+        parsed.recordsTotal || 0,
+      );
+      for (const chapter of chapters) {
+        if (chapter.chapterNumber === undefined) continue;
+        const date = dates.get(chapter.chapterNumber);
+        if (date) chapter.releaseTime = date;
+      }
+    } catch (err) {
+      console.warn(`[${this.id}] Could not fetch chapter dates`, err);
+    }
+
+    return chapters;
+  }
+
+  /**
+   * Scrape chapter upload dates from the server-rendered chapter pages
+   * ({novelPath}/chapters?page=N, 100 chapters per page) and return them
+   * keyed by chapter number. Dates are best-effort: failures are logged and
+   * skipped so the chapter list itself still loads.
+   */
+  async getChapterDates(
+    novelPath: string,
+    start: number,
+    length: number,
+    recordsTotal: number,
+  ): Promise<Map<number, string>> {
+    const dates = new Map<number, string>();
+    const perPage = 100;
+    const firstPage = Math.floor(start / perPage) + 1;
+    const lastPage =
+      length === -1
+        ? Math.ceil(recordsTotal / perPage)
+        : Math.ceil((start + length) / perPage);
+    const pages = Array.from(
+      { length: lastPage - firstPage + 1 },
+      (_, i) => firstPage + i,
+    );
+
+    // Same chunking + retry strategy as getAllChaptersForce to avoid rate limits.
+    const chunkSize = 5;
+    const retryCount = 10;
+    const sleepTime = 3.5;
+
+    for (let i = 0; i < pages.length; i += chunkSize) {
+      const pagesChunk = pages.slice(i, i + chunkSize);
+      let attempt = 0;
+
+      while (attempt < retryCount) {
+        try {
+          await Promise.all(
+            pagesChunk.map(async page => {
+              const url = `${this.site}${novelPath}/chapters?page=${page}`;
+              const res = await fetchApi(url);
+              if (res.status === 429) throw new NovelFireThrottlingError();
+              const $ = load(await res.text());
+
+              $('.chapter-list li').each((_, el) => {
+                const no = parseInt(
+                  $(el).find('.chapter-no').text().trim(),
+                  10,
+                );
+                const date = $(el)
+                  .find('.chapter-update')
+                  .attr('datetime')
+                  ?.trim();
+                if (!isNaN(no) && date) dates.set(no, date);
+              });
+            }),
+          );
+          break;
+        } catch (err) {
+          if (err instanceof NovelFireThrottlingError) {
+            attempt += 1;
+            if (attempt === retryCount) {
+              console.warn(
+                `[${this.id}] Rate limited while fetching chapter dates. Giving up.`,
+              );
+              break;
+            }
+            await new Promise(resolve => setTimeout(resolve, sleepTime * 1000));
+          } else {
+            console.warn(
+              `[${this.id}] Error while fetching chapter dates`,
+              err,
+            );
+            break;
+          }
+        }
+      }
+    }
+
+    return dates;
   }
 
   async getAllChaptersForce(
@@ -426,9 +527,16 @@ export class NovelFirePlugin implements Plugin.PagePlugin {
 
           if (!chapterPath) return null;
 
+          const releaseTime =
+            loadedCheerio(ele)
+              .find('.chapter-update')
+              .attr('datetime')
+              ?.trim() || undefined;
+
           return {
             name: chapterName,
             path: new URL(chapterPath, this.site).pathname.substring(1),
+            releaseTime,
           };
         })
         .get()
