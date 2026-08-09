@@ -53,6 +53,10 @@ procedures that matter; keep this file updated when the workflow changes.
 Releases are DIRECT commits to master (no PRs in-repo; PRs are only for
 upstream). Every release bumps `version` in the plugin class.
 
+**All PRs in this repo are opened MANUALLY by the user.** Agents prepare
+branches, commit, and push (`git push origin <branch>`), but never run
+`gh pr create` — the user opens the PR themselves in the GitHub UI.
+
 1. Edit the plugin `.ts`, bump `version`.
 2. Build + verify (see above).
 3. Commit, force-adding the gitignored artifacts + source + icon:
