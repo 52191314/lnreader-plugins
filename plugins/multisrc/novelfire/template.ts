@@ -266,8 +266,8 @@ export class NovelFirePlugin implements Plugin.PagePlugin {
   /**
    * Scrape chapter upload dates from the server-rendered chapter pages
    * ({novelPath}/chapters?page=N, 100 chapters per page) and return them
-   * keyed by chapter number. Dates are best-effort: failures are logged and
-   * skipped so the chapter list itself still loads.
+   * keyed by chapter number. Throws if the pages can't be fetched, so the
+   * caller can skip dates without failing the chapter list itself.
    */
   async getChapterDates(
     novelPath: string,
@@ -322,19 +322,10 @@ export class NovelFirePlugin implements Plugin.PagePlugin {
         } catch (err) {
           if (err instanceof NovelFireThrottlingError) {
             attempt += 1;
-            if (attempt === retryCount) {
-              console.warn(
-                `[${this.id}] Rate limited while fetching chapter dates. Giving up.`,
-              );
-              break;
-            }
+            if (attempt === retryCount) throw err;
             await new Promise(resolve => setTimeout(resolve, sleepTime * 1000));
           } else {
-            console.warn(
-              `[${this.id}] Error while fetching chapter dates`,
-              err,
-            );
-            break;
+            throw err;
           }
         }
       }
