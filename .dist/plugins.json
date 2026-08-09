@@ -950,9 +950,9 @@
 		"name": "Novel Fire",
 		"site": "https://novelfire.net/",
 		"lang": "English",
-		"version": "1.4.3",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/novelfire.js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/novelfire/icon.png"
+		"version": "1.4.4",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/NovelFire[novelfire].js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/novelfire/novelfire/icon.png"
 	},
 	{
 		"id": "novelfull",
@@ -1028,12 +1028,12 @@
 	},
 	{
 		"id": "novelphoenix",
-		"name": "NovelPhoenix",
+		"name": "Novel Phoenix",
 		"site": "https://novelphoenix.com/",
 		"lang": "English",
-		"version": "1.1.1",
-		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/novelphoenix.js",
-		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/english/novelphoenix/icon.png"
+		"version": "1.1.2",
+		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/NovelPhoenix[novelfire].js",
+		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/multisrc/novelfire/novelphoenix/icon.png"
 	},
 	{
 		"id": "novelrest",
