@@ -29,7 +29,7 @@ class RLIB implements Plugin.PluginBase {
   name = 'RanobeLib';
   site = 'https://ranobelib.me';
   apiSite = 'https://api.cdnlibs.org/api/manga/';
-  version = '2.2.5';
+  version = '2.2.6';
   icon = 'src/ru/ranobelib/icon.png';
   webStorageUtilized = true;
   imageRequestInit = {
@@ -184,27 +184,39 @@ class RLIB implements Plugin.PluginBase {
 
   async parseChapter(chapterPath: string): Promise<string> {
     const [slug, volume, number, branch_id] = chapterPath.split('/');
-    let chapterText = '';
-
-    if (slug && volume && number) {
-      const result: { data: DataClass } = await fetchApi(
-        this.apiSite +
-          slug +
-          '/chapter?' +
-          (branch_id ? 'branch_id=' + branch_id + '&' : '') +
-          'number=' +
-          number +
-          '&volume=' +
-          volume,
-        { headers: this.getHeaders() },
-      ).then(res => res.json());
-      const content = result?.data?.content;
-      chapterText =
-        typeof content === 'object' && content?.type === 'doc'
-          ? jsonToHtml(content.content, result.data.attachments || [])
-          : (content as string) || '';
+    if (!slug || !volume || !number) {
+      throw new Error(`Invalid chapter path: ${chapterPath}`);
     }
-    return chapterText;
+    const url =
+      this.apiSite +
+      slug +
+      '/chapter?' +
+      (branch_id ? 'branch_id=' + branch_id + '&' : '') +
+      'number=' +
+      number +
+      '&volume=' +
+      volume;
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const result: { data: DataClass } = await fetchApi(url, {
+          headers: this.getHeaders(),
+        }).then(res => res.json());
+        const content = result?.data?.content;
+        const chapterText =
+          typeof content === 'object' && content?.type === 'doc'
+            ? jsonToHtml(content.content, result.data.attachments || [])
+            : (content as string) || '';
+        if (chapterText) return chapterText;
+        lastError = 'empty chapter';
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+      if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+
+    throw new Error(`Could not load chapter (${lastError}), retried 3 times`);
   }
 
   async searchNovels(searchTerm: string): Promise<Plugin.NovelItem[]> {

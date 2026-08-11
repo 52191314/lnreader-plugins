@@ -23,7 +23,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   name = 'LightNovelWorld';
   icon = 'src/en/lightnovelworld/icon.png';
   site = 'https://lightnovelworld.org/';
-  version = '1.0.1';
+  version = '1.0.2';
 
   filters = {
     sort: {
@@ -198,11 +198,29 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     const LIMIT = 500;
     const apiBase = `${this.site}api/novel/${slug}/chapters/?limit=${LIMIT}`;
 
-    const firstRes = await fetchApi(`${apiBase}&offset=0`);
-    const firstJson = (await firstRes.json()) as {
-      chapters: { number: number; title: string }[];
-      total_chapters: number;
+    const fetchPage = async (offset: number) => {
+      let lastError = '';
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const res = await fetchApi(`${apiBase}&offset=${offset}`);
+          if (res.ok) {
+            return (await res.json()) as {
+              chapters: { number: number; title: string }[];
+              total_chapters?: number;
+            };
+          }
+          lastError = `HTTP ${res.status}`;
+        } catch (err) {
+          lastError = err instanceof Error ? err.message : String(err);
+        }
+        if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
+      }
+      throw new Error(
+        `Failed to fetch chapters page ${offset} (${lastError}), retried 3 times`,
+      );
     };
+
+    const firstJson = await fetchPage(0);
 
     const total = firstJson.total_chapters;
     const offsets: number[] = [];
@@ -210,23 +228,11 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
       offsets.push(offset);
     }
 
-    const remainingResults = await Promise.all(
-      offsets.map(async offset => {
-        try {
-          const res = await fetchApi(`${apiBase}&offset=${offset}`);
-          const json = (await res.json()) as {
-            chapters: { number: number; title: string }[];
-          };
-          return json.chapters || [];
-        } catch {
-          return [];
-        }
-      }),
-    );
+    const remainingResults = await Promise.all(offsets.map(fetchPage));
 
     const rawChapters = [
       ...(firstJson.chapters || []),
-      ...remainingResults.flat(),
+      ...remainingResults.flatMap(r => r.chapters || []),
     ];
 
     return rawChapters
@@ -263,11 +269,7 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
     let chapters: Plugin.ChapterItem[] = [];
 
     if (slug) {
-      try {
-        chapters = await this.fetchAllChapters(slug);
-      } catch {
-        chapters = [];
-      }
+      chapters = await this.fetchAllChapters(slug);
     }
 
     return {
@@ -283,21 +285,36 @@ export class LightNovelWorldPlugin implements Plugin.PluginBase {
   }
 
   async parseChapter(chapterPath: string): Promise<string> {
-    const html = await fetchText(`${this.site}${chapterPath}`);
-    const $ = loadCheerio(html);
+    const url = `${this.site}${chapterPath}`;
+    let lastError = '';
 
-    const container = $('#chapterText');
-    if (!container.length) {
-      return '<p>No content found.</p>';
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetchApi(url);
+        const html = res.ok ? await res.text() : '';
+        lastError = res.ok ? 'empty chapter' : `HTTP ${res.status}`;
+
+        if (html) {
+          const $ = loadCheerio(html);
+          const container = $('#chapterText');
+          if (container.length) {
+            container
+              .find(
+                'script, style, ins, iframe, .ads, .ad-container, .watermark',
+              )
+              .remove();
+            container.find('[style]').removeAttr('style');
+            const content = container.html()?.trim() || '';
+            if (content) return content;
+          }
+        }
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
+      if (attempt < 3) await new Promise(r => setTimeout(r, 1000 * attempt));
     }
 
-    container
-      .find('script, style, ins, iframe, .ads, .ad-container, .watermark')
-      .remove();
-    container.find('[style]').removeAttr('style');
-
-    const content = container.html()?.trim() || '';
-    return content || '<p>No content found.</p>';
+    throw new Error(`Could not load chapter (${lastError}), retried 3 times`);
   }
 
   async searchNovels(

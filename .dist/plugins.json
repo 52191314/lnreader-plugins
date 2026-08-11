@@ -743,7 +743,7 @@
 		"name": "LightNovelWorld",
 		"site": "https://lightnovelworld.org/",
 		"lang": "English",
-		"version": "1.0.1",
+		"version": "1.0.2",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/lightnovelworld.js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/lightnovelworld/icon.png"
 	},
@@ -1968,7 +1968,7 @@
 		"name": "RanobeLib",
 		"site": "https://ranobelib.me",
 		"lang": "Русский",
-		"version": "2.2.5",
+		"version": "2.2.6",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/russian/ranobelib.js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/ru/ranobelib/icon.png"
 	},
