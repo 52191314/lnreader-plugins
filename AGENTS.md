@@ -85,6 +85,14 @@ branches, commit, and push (`git push origin <branch>`), but never run
   CMS/template, cross-linked sites) — see `Sibling/` taxonomy for existing
   families; siblings ship as parallel standalone plugins.
 
+## Pre-flight review (Kingfisher)
+
+- ALWAYS load the `kingfisher-review` skill and run its pre-flight review
+  pass before committing ANY plugin change (new plugin, fix, or multisrc
+  instance). It is a private lens for catching the kind of nitpicks a
+  maintainer would catch — never post its output to GitHub or attribute it
+  to K1ngfish3r.
+
 ## Other rules
 
 - `.broken.ts` plugins: don't "fix" unless asked — they're intentionally
