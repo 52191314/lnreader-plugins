@@ -10,7 +10,7 @@ import { storage } from '@libs/storage';
 class Mynovels implements Plugin.PagePlugin {
   id = 'mynovels';
   name = 'Mynovels';
-  version = '1.0.0';
+  version = '1.0.1';
   icon = 'src/en/mynovels/icon.png';
   site = 'https://mynovels.su/';
 
@@ -89,12 +89,14 @@ class Mynovels implements Plugin.PagePlugin {
     const loadedCheerio = parseHTML(body);
 
     const coverSrc = loadedCheerio('.poster > img').attr('src');
+    const siteTotalPages =
+      loadedCheerio('#select-pagination-chapter > option').length || 1;
     const novel: Plugin.SourceNovel & { totalPages: number } = {
       path: novelPath,
       name: loadedCheerio('h1').text().trim() || 'Untitled',
       cover: coverSrc ? this.site + coverSrc : defaultCover,
       summary: loadedCheerio('section.text-info.section > p').text().trim(),
-      totalPages: loadedCheerio('#select-pagination-chapter > option').length,
+      totalPages: Math.ceil(siteTotalPages / 2),
       chapters: [],
     };
 
@@ -132,19 +134,15 @@ class Mynovels implements Plugin.PagePlugin {
     return novel;
   }
 
-  async parsePage(novelPath: string, page: string): Promise<Plugin.SourcePage> {
-    const rawBody = await fetchApi(this.site + novelPath).then(r => r.text());
-    const csrftoken = rawBody?.match(/window\.CSRF_TOKEN = "([^"]+)"/)?.[1];
-    const bookId = rawBody?.match(/const OBJECT_BY_COMMENT = ([0-9]+)/)?.[1];
-    const totalPages = parseInt(
-      rawBody
-        ?.match(/<option value="([0-9]+)"/g)
-        ?.at(-1)
-        ?.match(/([0-9]+)/)?.[1] ?? '1',
-    );
-
+  private async fetchSitePageChapters(
+    novelPath: string,
+    csrftoken: string,
+    bookId: string,
+    sitePage: number,
+    pluginPage: string,
+  ): Promise<Plugin.ChapterItem[]> {
     const r = await fetchApi(
-      `${this.site}book/ajax/chapter-pagination?csrfmiddlewaretoken=${csrftoken}&book_id=${bookId}&page=${totalPages - parseInt(page) + 1}`,
+      `${this.site}book/ajax/chapter-pagination?csrfmiddlewaretoken=${csrftoken}&book_id=${bookId}&page=${sitePage}`,
       {
         headers: {
           'Host': this.site.replace('https://', '').replace('/', ''),
@@ -156,12 +154,9 @@ class Mynovels implements Plugin.PagePlugin {
 
     let chaptersRaw;
     try {
-      chaptersRaw = await r.json();
-      chaptersRaw = chaptersRaw.html;
-    } catch (error) {
-      console.error('Error Parsing Response');
-      console.error(error);
-      throw new Error(String(error));
+      chaptersRaw = (await r.json()).html;
+    } catch {
+      return [];
     }
 
     const chapter: Plugin.ChapterItem[] = [];
@@ -191,12 +186,43 @@ class Mynovels implements Plugin.PagePlugin {
       chapter.push({
         name: chapterName,
         path: chapterUrl || '',
-        page: page,
+        page: pluginPage,
         releaseTime: date,
       });
     });
 
-    const chapters = chapter.reverse();
+    return chapter.reverse();
+  }
+
+  async parsePage(novelPath: string, page: string): Promise<Plugin.SourcePage> {
+    const rawBody = await fetchApi(this.site + novelPath).then(r => r.text());
+    const csrftoken =
+      rawBody?.match(/window\.CSRF_TOKEN = "([^"]+)"/)?.[1] || '';
+    const bookId =
+      rawBody?.match(/const OBJECT_BY_COMMENT = ([0-9]+)/)?.[1] || '';
+    const siteTotalPages = parseInt(
+      rawBody
+        ?.match(/<option value="([0-9]+)"/g)
+        ?.at(-1)
+        ?.match(/([0-9]+)/)?.[1] ?? '1',
+      10,
+    );
+
+    const pluginPageNum = parseInt(page, 10);
+    const sitePages: number[] = [];
+    const sitePage1 = siteTotalPages - (pluginPageNum - 1) * 2;
+    const sitePage2 = sitePage1 - 1;
+
+    if (sitePage1 >= 1) sitePages.push(sitePage1);
+    if (sitePage2 >= 1) sitePages.push(sitePage2);
+
+    const results = await Promise.all(
+      sitePages.map(sp =>
+        this.fetchSitePageChapters(novelPath, csrftoken, bookId, sp, page),
+      ),
+    );
+
+    const chapters = results.flat();
     return { chapters };
   }
 
