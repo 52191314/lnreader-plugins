@@ -7,10 +7,10 @@ import { minify } from './terser.js';
 const REMOTE = execSync('git remote get-url origin')
   .toString()
   .replace(/[\s\n]/g, '');
-const CURRENT_BRANCH = execSync('git branch --show-current')
-  .toString()
-  .replace(/[\s\n]/g, '');
-const BRANCH = process.env.BRANCH ? process.env.BRANCH : CURRENT_BRANCH;
+const CURRENT_BRANCH = (
+  process.env.BRANCH || execSync('git rev-parse --abbrev-ref HEAD').toString()
+).replace(/[\s\n]/g, '');
+const BRANCH = CURRENT_BRANCH;
 const matched = REMOTE.match(/([^:/]+?)\/([^/.]+)(\.git)?$/);
 if (!matched) throw Error('Cant parse git url');
 const USERNAME = matched[1];
