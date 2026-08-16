@@ -10,7 +10,7 @@ import { storage } from '@libs/storage';
 class Mynovels implements Plugin.PagePlugin {
   id = 'mynovels';
   name = 'Mynovels';
-  version = '1.0.2';
+  version = '1.0.3';
   icon = 'src/en/mynovels/icon.png';
   site = 'https://mynovels.su/';
 
@@ -23,8 +23,27 @@ class Mynovels implements Plugin.PagePlugin {
     },
   };
 
-  private getPagesPerChunk(siteTotalPages: number): number {
-    return siteTotalPages > 10 ? 6 : 2;
+  private getChunkSize(totalChapters: number): number {
+    return totalChapters > 500 ? 300 : 100;
+  }
+
+  private parseTotalChapters(
+    loadedCheerio: ReturnType<typeof parseHTML>,
+  ): number {
+    let totalChapters = 0;
+    loadedCheerio('#select-pagination-chapter > option').each((_, el) => {
+      const text = loadedCheerio(el).text().trim();
+      const match = text.match(/([0-9]+)\s*-\s*([0-9]+)/);
+      if (match) {
+        const end = parseInt(match[2], 10);
+        if (end > totalChapters) totalChapters = end;
+      }
+    });
+    return (
+      totalChapters ||
+      loadedCheerio('#select-pagination-chapter > option').length * 50 ||
+      1
+    );
   }
 
   async popularNovels(
@@ -93,15 +112,14 @@ class Mynovels implements Plugin.PagePlugin {
     const loadedCheerio = parseHTML(body);
 
     const coverSrc = loadedCheerio('.poster > img').attr('src');
-    const siteTotalPages =
-      loadedCheerio('#select-pagination-chapter > option').length || 1;
-    const pagesPerChunk = this.getPagesPerChunk(siteTotalPages);
+    const totalChapters = this.parseTotalChapters(loadedCheerio);
+    const chunkSize = this.getChunkSize(totalChapters);
     const novel: Plugin.SourceNovel & { totalPages: number } = {
       path: novelPath,
       name: loadedCheerio('h1').text().trim() || 'Untitled',
       cover: coverSrc ? this.site + coverSrc : defaultCover,
       summary: loadedCheerio('section.text-info.section > p').text().trim(),
-      totalPages: Math.ceil(siteTotalPages / pagesPerChunk),
+      totalPages: Math.ceil(totalChapters / chunkSize) || 1,
       chapters: [],
     };
 
@@ -205,31 +223,53 @@ class Mynovels implements Plugin.PagePlugin {
       rawBody?.match(/window\.CSRF_TOKEN = "([^"]+)"/)?.[1] || '';
     const bookId =
       rawBody?.match(/const OBJECT_BY_COMMENT = ([0-9]+)/)?.[1] || '';
-    const siteTotalPages = parseInt(
-      rawBody
-        ?.match(/<option value="([0-9]+)"/g)
-        ?.at(-1)
-        ?.match(/([0-9]+)/)?.[1] ?? '1',
-      10,
-    );
+    const loadedCheerio = parseHTML(rawBody);
 
-    const pagesPerChunk = this.getPagesPerChunk(siteTotalPages);
+    const totalChapters = this.parseTotalChapters(loadedCheerio);
+    const chunkSize = this.getChunkSize(totalChapters);
     const pluginPageNum = parseInt(page, 10);
-    const sitePages: number[] = [];
-    const startPage = siteTotalPages - (pluginPageNum - 1) * pagesPerChunk;
 
-    for (let i = 0; i < pagesPerChunk; i++) {
-      const sp = startPage - i;
-      if (sp >= 1) sitePages.push(sp);
-    }
+    const desiredStartIdx = (pluginPageNum - 1) * chunkSize + 1;
+    const desiredEndIdx = Math.min(pluginPageNum * chunkSize, totalChapters);
+
+    const sitePagesToFetch: {
+      sp: number;
+      rangeStart: number;
+      rangeEnd: number;
+    }[] = [];
+    loadedCheerio('#select-pagination-chapter > option').each((_, el) => {
+      const sp = parseInt(loadedCheerio(el).val() || '1', 10);
+      const text = loadedCheerio(el).text().trim();
+      const match = text.match(/([0-9]+)\s*-\s*([0-9]+)/);
+      if (match) {
+        const rangeStart = parseInt(match[1], 10);
+        const rangeEnd = parseInt(match[2], 10);
+        if (rangeStart <= desiredEndIdx && rangeEnd >= desiredStartIdx) {
+          sitePagesToFetch.push({ sp, rangeStart, rangeEnd });
+        }
+      }
+    });
+
+    sitePagesToFetch.sort((a, b) => a.rangeStart - b.rangeStart);
 
     const results = await Promise.all(
-      sitePages.map(sp =>
-        this.fetchSitePageChapters(novelPath, csrftoken, bookId, sp, page),
+      sitePagesToFetch.map(p =>
+        this.fetchSitePageChapters(novelPath, csrftoken, bookId, p.sp, page),
       ),
     );
 
-    const chapters = results.flat();
+    const fetchedChapters = results.flat();
+    if (sitePagesToFetch.length === 0) {
+      return { chapters: fetchedChapters };
+    }
+
+    const sliceOffset = desiredStartIdx - sitePagesToFetch[0].rangeStart;
+    const countNeeded = desiredEndIdx - desiredStartIdx + 1;
+    const chapters = fetchedChapters.slice(
+      sliceOffset,
+      sliceOffset + countNeeded,
+    );
+
     return { chapters };
   }
 
