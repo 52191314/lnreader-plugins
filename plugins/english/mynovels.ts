@@ -91,14 +91,14 @@ class Mynovels implements Plugin.PagePlugin {
       const novelUrl = ele.attribs.href;
       const bareNovelCover = el.find('img').attr('src');
       const novelCover = bareNovelCover
-        ? this.site + bareNovelCover
+        ? this.site + bareNovelCover.replace(/^\//, '')
         : defaultCover;
       if (!novelUrl) return;
 
       novels.push({
         name: novelName,
         cover: novelCover,
-        path: novelUrl.replace('/', ''),
+        path: novelUrl.replace(/^\//, ''),
       });
     });
 
@@ -117,7 +117,7 @@ class Mynovels implements Plugin.PagePlugin {
     const novel: Plugin.SourceNovel & { totalPages: number } = {
       path: novelPath,
       name: loadedCheerio('h1').text().trim() || 'Untitled',
-      cover: coverSrc ? this.site + coverSrc : defaultCover,
+      cover: coverSrc ? this.site + coverSrc.replace(/^\//, '') : defaultCover,
       summary: loadedCheerio('section.text-info.section > p').text().trim(),
       totalPages: Math.ceil(totalChapters / chunkSize) || 1,
       chapters: [],
@@ -202,13 +202,10 @@ class Mynovels implements Plugin.PagePlugin {
       }
 
       const chapterName = isLocked ? '🔒 ' + title : title;
-      let chapterUrl = ele.attribs.href;
-      if (chapterUrl?.charAt(0) === '/') {
-        chapterUrl = chapterUrl.substring(1);
-      }
+      const chapterUrl = ele.attribs.href?.replace(/^\//, '') || '';
       chapter.push({
         name: chapterName,
-        path: chapterUrl || '',
+        path: chapterUrl,
         page: pluginPage,
         releaseTime: date,
       });
@@ -274,10 +271,8 @@ class Mynovels implements Plugin.PagePlugin {
   }
 
   async parseChapter(chapterPath: string): Promise<string> {
-    if (chapterPath.charAt(0) === '/') {
-      chapterPath = chapterPath.substring(1);
-    }
-    const rawBody = await fetchApi(this.site + chapterPath).then(r => r.text());
+    const cleanPath = chapterPath.replace(/^\//, '');
+    const rawBody = await fetchApi(this.site + cleanPath).then(r => r.text());
 
     const csrftoken = rawBody?.match(/window\.CSRF_TOKEN = "([^"]+)"/)?.[1];
     const chapterId = rawBody?.match(/const CHAPTER_ID = "([0-9]+)/)?.[1];
@@ -289,7 +284,7 @@ class Mynovels implements Plugin.PagePlugin {
         method: 'GET',
         headers: {
           Cookie: `csrftoken=${csrftoken}`,
-          Referer: this.site + chapterPath,
+          Referer: this.site + cleanPath,
           'X-Requested-With': 'XMLHttpRequest',
         },
       },
@@ -323,14 +318,14 @@ class Mynovels implements Plugin.PagePlugin {
       const novelUrl = ele.attribs.href;
       const bareNovelCover = el.find('img').attr('src');
       const novelCover = bareNovelCover
-        ? this.site + bareNovelCover
+        ? this.site + bareNovelCover.replace(/^\//, '')
         : defaultCover;
       if (!novelUrl) return;
 
       novels.push({
         name: novelName,
         cover: novelCover,
-        path: novelUrl.replace('/', ''),
+        path: novelUrl.replace(/^\//, ''),
       });
     });
 
