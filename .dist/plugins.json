@@ -869,7 +869,7 @@
 		"name": "Mynovels",
 		"site": "https://mynovels.su/",
 		"lang": "English",
-		"version": "1.0.1",
+		"version": "1.0.2",
 		"url": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/.js/src/plugins/english/mynovels.js",
 		"iconUrl": "https://raw.githubusercontent.com/52191314/lnreader-plugins/master/public/static/src/en/mynovels/icon.png"
 	},

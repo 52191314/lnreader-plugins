@@ -10,7 +10,7 @@ import { storage } from '@libs/storage';
 class Mynovels implements Plugin.PagePlugin {
   id = 'mynovels';
   name = 'Mynovels';
-  version = '1.0.1';
+  version = '1.0.2';
   icon = 'src/en/mynovels/icon.png';
   site = 'https://mynovels.su/';
 
@@ -22,6 +22,10 @@ class Mynovels implements Plugin.PagePlugin {
       type: 'Switch',
     },
   };
+
+  private getPagesPerChunk(siteTotalPages: number): number {
+    return siteTotalPages > 10 ? 6 : 2;
+  }
 
   async popularNovels(
     pageNo: number,
@@ -91,12 +95,13 @@ class Mynovels implements Plugin.PagePlugin {
     const coverSrc = loadedCheerio('.poster > img').attr('src');
     const siteTotalPages =
       loadedCheerio('#select-pagination-chapter > option').length || 1;
+    const pagesPerChunk = this.getPagesPerChunk(siteTotalPages);
     const novel: Plugin.SourceNovel & { totalPages: number } = {
       path: novelPath,
       name: loadedCheerio('h1').text().trim() || 'Untitled',
       cover: coverSrc ? this.site + coverSrc : defaultCover,
       summary: loadedCheerio('section.text-info.section > p').text().trim(),
-      totalPages: Math.ceil(siteTotalPages / 2),
+      totalPages: Math.ceil(siteTotalPages / pagesPerChunk),
       chapters: [],
     };
 
@@ -208,13 +213,15 @@ class Mynovels implements Plugin.PagePlugin {
       10,
     );
 
+    const pagesPerChunk = this.getPagesPerChunk(siteTotalPages);
     const pluginPageNum = parseInt(page, 10);
     const sitePages: number[] = [];
-    const sitePage1 = siteTotalPages - (pluginPageNum - 1) * 2;
-    const sitePage2 = sitePage1 - 1;
+    const startPage = siteTotalPages - (pluginPageNum - 1) * pagesPerChunk;
 
-    if (sitePage1 >= 1) sitePages.push(sitePage1);
-    if (sitePage2 >= 1) sitePages.push(sitePage2);
+    for (let i = 0; i < pagesPerChunk; i++) {
+      const sp = startPage - i;
+      if (sp >= 1) sitePages.push(sp);
+    }
 
     const results = await Promise.all(
       sitePages.map(sp =>
