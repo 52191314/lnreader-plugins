@@ -109,7 +109,9 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     }
 
     const link = `${this.site}works/search?${params.toString()}`;
-    const body = await fetchApi(link).then(r => r.text());
+    const body = await fetchApi(link, {
+      headers: { Cookie: 'view_adult=true' },
+    }).then(r => r.text());
     const loadedCheerio = parseHTML(body);
     return this.parseNovels(loadedCheerio);
   }
@@ -254,7 +256,9 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     });
     const searchUrl = `${this.site}works/search?${params.toString()}`;
 
-    const result = await fetchApi(searchUrl);
+    const result = await fetchApi(searchUrl, {
+      headers: { Cookie: 'view_adult=true' },
+    });
     const body = await result.text();
 
     const loadedCheerio = parseHTML(body);
