@@ -44,6 +44,7 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
   version: string;
   options: ReadNovelFullOptions;
   filters?: Filters | undefined;
+  imageRequestInit?: Plugin.ImageRequestInit;
 
   constructor(metadata: ReadNovelFullMetadata) {
     this.id = metadata.id;
@@ -54,6 +55,11 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
     this.version = `2.2.${1 + versionIncrements}`;
     this.options = metadata.options;
     this.filters = metadata.filters;
+    this.imageRequestInit = {
+      headers: {
+        'Referer': this.site,
+      },
+    };
   }
 
   lastSearch: number | null = null;
@@ -94,8 +100,12 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
         switch (name) {
           case 'img':
             {
-              const cover = attribs['data-src'] || attribs.src;
-              if (cover) {
+              const cover =
+                attribs['data-src'] ||
+                attribs['data-cfsrc'] ||
+                attribs['data-original'] ||
+                attribs.src;
+              if (cover && !cover.startsWith('data:')) {
                 tempNovel.cover = new URL(cover, this.site).href;
               }
             }
@@ -416,9 +426,12 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
           case 'img':
             if (state === ParsingState.Cover) {
               const cover =
-                attribs.src ?? attribs['data-cfsrc'] ?? attribs['data-src'];
+                attribs['data-src'] ||
+                attribs['data-cfsrc'] ||
+                attribs['data-original'] ||
+                attribs.src;
               const name = attribs.title;
-              if (cover) {
+              if (cover && !cover.startsWith('data:')) {
                 novel.cover = new URL(cover, this.site).href;
               }
               if (name) {
