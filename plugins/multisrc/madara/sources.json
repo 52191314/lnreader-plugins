@@ -316,7 +316,8 @@
     "sourceName": "Azora",
     "options": {
       "useNewChapterEndpoint": true,
-      "lang": "Arabic"
+      "lang": "Arabic",
+      "down": true
     }
   },
   {
@@ -407,13 +408,12 @@
   },
   {
     "id": "bellereservoir",
-    "sourceSite": "https://bellereservoir.com/",
-    "sourceName": "Belle Reservoir",
+    "sourceSite": "https://bellerepository.com/",
+    "sourceName": "Belle Repository",
     "options": {
       "useNewChapterEndpoint": true,
       "lang": "English",
-      "down": true,
-      "downSince": 1777153113000
+      "versionIncrements": 1
     }
   },
   {
@@ -552,15 +552,6 @@
     }
   },
   {
-    "id": "WebNovelTraslation",
-    "sourceSite": "https://webnoveltranslations.com/",
-    "sourceName": "Web Novel Translation",
-    "options": {
-      "lang": "English",
-      "useNewChapterEndpoint": true
-    }
-  },
-  {
     "id": "AnimesHoy12",
     "sourceSite": "https://animeshoy12.com/",
     "sourceName": "AnimesHoy12",
@@ -587,15 +578,6 @@
       "lang": "English",
       "useNewChapterEndpoint": true,
       "customJs": "loadedCheerio('img[alt=\"Buy Me a Coffee at ko-fi.com\"]').parent().remove(); loadedCheerio('*').contents().each(function() {if (this.type === 'comment' && this.data.trim() === 'Text Ranovel') {let currentNode = this.next;for (let i = 0; i < 2 && currentNode; i++) {const nextNode = currentNode.next;loadedCheerio(currentNode).remove();currentNode = nextNode;}}});"
-    }
-  },
-  {
-    "id": "dragonholic",
-    "sourceSite": "https://dragonholic.com/",
-    "sourceName": "Dragonholic",
-    "options": {
-      "lang": "English",
-      "useNewChapterEndpoint": true
     }
   },
   {
@@ -643,14 +625,50 @@
     }
   },
   {
+    "id": "boxnovel",
+    "sourceSite": "https://novelnice.com/",
+    "sourceName": "BoxNovel",
+    "options": {
+      "lang": "English",
+      "useNewChapterEndpoint": true,
+      "versionIncrements": 2
+    }
+  },
+  {
     "id": "novelnice",
     "sourceSite": "https://novelnice.com/",
     "sourceName": "Novel Nice",
     "options": {
       "lang": "English",
+      "useNewChapterEndpoint": true
+    }
+  },
+  {
+    "id": "novelshort",
+    "sourceSite": "https://novel-short.com/",
+    "sourceName": "Novel Short",
+    "options": {
+      "lang": "English",
+      "useNewChapterEndpoint": true
+    }
+  },
+  {
+    "id": "lovelyblossoms",
+    "sourceSite": "https://lovelyblossoms.com/",
+    "sourceName": "Lovelyblossoms",
+    "options": {
       "useNewChapterEndpoint": true,
-      "version": "1.0.0",
-      "browsePage": "read"
+      "browserHeaders": true,
+      "versionIncrements": 1
+    }
+  },
+  {
+    "id": "tangerinearchive",
+    "sourceSite": "https://tangerinearchive.com/",
+    "sourceName": "Tangerine Archive",
+    "options": {
+      "lang": "English",
+      "useNewChapterEndpoint": true
     }
   }
 ]
