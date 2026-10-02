@@ -26,6 +26,7 @@ type ReadNovelFullOptions = {
   pageAsPath?: boolean;
   customJs?: string;
   chapterListPaginated?: boolean;
+  imageReferer?: boolean;
 };
 
 export type ReadNovelFullMetadata = {
@@ -55,11 +56,13 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
     this.version = `2.2.${1 + versionIncrements}`;
     this.options = metadata.options;
     this.filters = metadata.filters;
-    this.imageRequestInit = {
-      headers: {
-        'Referer': this.site,
-      },
-    };
+    if (this.options?.imageReferer) {
+      this.imageRequestInit = {
+        headers: {
+          'Referer': this.site,
+        },
+      };
+    }
   }
 
   lastSearch: number | null = null;
@@ -100,12 +103,13 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
         switch (name) {
           case 'img':
             {
-              const cover =
-                attribs['data-src'] ||
-                attribs['data-cfsrc'] ||
-                attribs['data-original'] ||
-                attribs.src;
-              if (cover && !cover.startsWith('data:')) {
+              const cover = [
+                attribs['data-src'],
+                attribs['data-cfsrc'],
+                attribs['data-original'],
+                attribs.src,
+              ].find(attr => attr && !attr.startsWith('data:'));
+              if (cover) {
                 tempNovel.cover = new URL(cover, this.site).href;
               }
             }
@@ -425,13 +429,14 @@ export class ReadNovelFullPlugin implements Plugin.PluginBase {
             break;
           case 'img':
             if (state === ParsingState.Cover) {
-              const cover =
-                attribs['data-src'] ||
-                attribs['data-cfsrc'] ||
-                attribs['data-original'] ||
-                attribs.src;
+              const cover = [
+                attribs['data-src'],
+                attribs['data-cfsrc'],
+                attribs['data-original'],
+                attribs.src,
+              ].find(attr => attr && !attr.startsWith('data:'));
               const name = attribs.title;
-              if (cover && !cover.startsWith('data:')) {
+              if (cover) {
                 novel.cover = new URL(cover, this.site).href;
               }
               if (name) {
