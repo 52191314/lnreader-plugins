@@ -6,7 +6,7 @@ import { defaultCover } from '@libs/defaultCover';
 
 function checkResponse(res: Response, body: string, context: string) {
   if (!res.ok) {
-    if (res.status === 429 || res.status === 503 || res.status === 403) {
+    if (res.status >= 500 || res.status === 429 || res.status === 403) {
       throw Object.assign(
         new Error(`AO3 request timed out / blocked: HTTP ${res.status}`),
         { status: res.status, response: res },
