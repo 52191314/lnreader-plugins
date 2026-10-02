@@ -4,6 +4,24 @@ import { Plugin } from '@/types/plugin';
 import { Filters, FilterTypes } from '@libs/filterInputs';
 import { defaultCover } from '@libs/defaultCover';
 
+function checkResponse(res: Response, body: string, context: string) {
+  if (!res.ok) {
+    if (res.status === 429 || res.status === 503 || res.status === 403) {
+      throw Object.assign(
+        new Error(`AO3 request timed out / blocked: HTTP ${res.status}`),
+        { status: res.status, response: res },
+      );
+    }
+    throw new Error(`Failed to ${context}: HTTP ${res.status}`);
+  }
+  if (body.includes('Retry later')) {
+    throw Object.assign(
+      new Error('AO3 rate limit: request timed out by server (Retry later)'),
+      { status: 429, response: res },
+    );
+  }
+}
+
 class ArchiveOfOurOwn implements Plugin.PluginBase {
   id = 'archiveofourown';
   name = 'Archive Of Our Own';
@@ -109,9 +127,11 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     }
 
     const link = `${this.site}works/search?${params.toString()}`;
-    const body = await fetchApi(link, {
+    const res = await fetchApi(link, {
       headers: { Cookie: 'view_adult=true' },
-    }).then(r => r.text());
+    });
+    const body = await res.text();
+    checkResponse(res, body, 'fetch popular novels');
     const loadedCheerio = parseHTML(body);
     return this.parseNovels(loadedCheerio);
   }
@@ -120,7 +140,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     const novelHttpUrl = new URL(novelUrl, this.site);
     novelHttpUrl.searchParams.set('view_adult', 'true');
     const navHttpUrl = new URL(
-      novelUrl.replace(/\/$/, '') + '/navigate',
+      novelHttpUrl.pathname.replace(/\/$/, '') + '/navigate',
       this.site,
     );
     navHttpUrl.searchParams.set('view_adult', 'true');
@@ -132,6 +152,8 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
     ]);
     const body = await result.text();
     const chapterlisttext = await chapters.text();
+    checkResponse(result, body, 'fetch novel details');
+    checkResponse(chapters, chapterlisttext, 'fetch novel chapters');
     const chapterlistload = parseHTML(chapterlisttext);
     const loadedCheerio = parseHTML(body);
 
@@ -219,6 +241,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       headers: { Cookie: 'view_adult=true' },
     });
     const body = await result.text();
+    checkResponse(result, body, 'fetch chapter');
 
     const loadedCheerio = parseHTML(body);
 
@@ -260,6 +283,7 @@ class ArchiveOfOurOwn implements Plugin.PluginBase {
       headers: { Cookie: 'view_adult=true' },
     });
     const body = await result.text();
+    checkResponse(result, body, 'search novels');
 
     const loadedCheerio = parseHTML(body);
     return this.parseNovels(loadedCheerio);
